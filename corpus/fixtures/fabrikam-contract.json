@@ -1,0 +1,22 @@
+{
+  "synthetic": true,
+  "fixture_version": "1.0.0",
+  "contract_id": "CON-FAB-2025-001",
+  "customer_id": "CUS-FABRIKAM-SE",
+  "customer_name": "Fabrikam Industrial AB",
+  "account_owner_scenario_role": "account_manager",
+  "service_tier": "Gold",
+  "covered_assets": 18,
+  "annual_value": {
+    "currency": "EUR",
+    "amount": "180000.00"
+  },
+  "starts_on": "2025-09-30",
+  "expires_on": "2026-09-29",
+  "detected_on": "2026-08-15",
+  "days_to_expiry": 45,
+  "customer_preferred_languages": [
+    "sv-SE",
+    "en-GB"
+  ]
+}

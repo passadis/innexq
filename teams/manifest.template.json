@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.23",
+  "version": "0.1.0",
+  "id": "${BOT_CLIENT_ID}",
+  "developer": {
+    "name": "InnexQ Hackathon",
+    "websiteUrl": "${API_BASE_URL}",
+    "privacyUrl": "${API_BASE_URL}/privacy",
+    "termsOfUseUrl": "${API_BASE_URL}/terms"
+  },
+  "name": {"short": "InnexQ", "full": "InnexQ governed workflow approvals"},
+  "description": {
+    "short": "Review and authorize exact synthetic Contract Renewal actions.",
+    "full": "InnexQ is a governed workflow product. Its Contract Renewal pack presents evidence, deterministic pricing and exact proposed SharePoint and test-email actions. Only the configured authorized human can approve the stored version and hash. This private hackathon app uses synthetic data, not commercial offers."
+  },
+  "icons": {"outline": "outline.png", "color": "color.png"},
+  "accentColor": "#153747",
+  "bots": [{
+    "botId": "${BOT_CLIENT_ID}",
+    "scopes": ["team"],
+    "isNotificationOnly": false,
+    "supportsFiles": false,
+    "commandLists": [{
+      "scopes": ["team"],
+      "commands": [{"title": "connect", "description": "Register this approved channel for decision briefs."}]
+    }]
+  }],
+  "permissions": ["identity"],
+  "validDomains": ["${API_HOST}"]
+}

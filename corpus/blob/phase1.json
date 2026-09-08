@@ -1,0 +1,52 @@
+{
+  "documents": [
+    {
+      "id": "contract",
+      "title": "SYNTHETIC: Fabrikam Phase 1 contract",
+      "content": "SYNTHETIC HACKATHON FIXTURE. Contract CON-FAB-2025-001 belongs to fictional Fabrikam Industrial AB. The deterministic contract register supplies an annual value of EUR 180000.00. The Phase 1 renewal preserves a 12-month term and the existing Gold service level. The evidence supplies context; the pricing tool must calculate all financial outputs. This fixture does not authorize a three-year term, changed SLA, or customer commitment. Only the designated human's approval of the complete versioned action manifest permits execution.",
+      "url": "https://schemas.innexq.invalid/corpus/contract/2026-09-07",
+      "version": "2026-09-07",
+      "valid_until": "2027-09-07T00:00:00Z"
+    },
+    {
+      "id": "pricing",
+      "title": "SYNTHETIC: Phase 1 pricing policy",
+      "content": "SYNTHETIC HACKATHON FIXTURE. Pricing policy discount-authority version 2026-08-15 permits the account_manager role a discount from zero through 8.00 percent inclusive. The illustrative fixture EUR 180000.00 at 8.00 percent produces EUR 165600.00 annual net value and EUR 14400.00 discount. These reference values must be independently obtained from the deterministic pricing tool; model arithmetic is not authoritative. The tool accepts decimal strings in EUR, rounds annual net value half up to cents, and obtains the discount amount by subtraction so the amounts reconcile. Discounts above 8.00 percent require exception escalation and cannot execute in Phase 1.",
+      "url": "https://schemas.innexq.invalid/corpus/pricing/2026-09-07",
+      "version": "2026-09-07",
+      "valid_until": "2027-09-07T00:00:00Z"
+    },
+    {
+      "id": "authority",
+      "title": "SYNTHETIC: Phase 1 approval matrix",
+      "content": "SYNTHETIC HACKATHON FIXTURE. The trusted controller configuration maps the designated authenticated human to account_manager. A role label supplied by a model or card payload is never evidence of authority. The account_manager may approve discounts up to 8.00 percent. A request for 12.00 percent requires operations_manager escalation; exception approval is intentionally not executable in Phase 1. The controller verifies tenant, approver identity, role, brief version, brief hash and evidence completeness before recording authorization. Retrieval identities cannot send email or write SharePoint files. An approval applies only to the exact displayed action package.",
+      "url": "https://schemas.innexq.invalid/corpus/authority/2026-09-07",
+      "version": "2026-09-07",
+      "valid_until": "2027-09-07T00:00:00Z"
+    },
+    {
+      "id": "sla",
+      "title": "SYNTHETIC: Phase 1 service-level boundary",
+      "content": "SYNTHETIC HACKATHON FIXTURE. The existing service level is Gold and remains unchanged for the 12-month Phase 1 renewal. This corpus contains no verified response-time commitment, emergency-callout analysis, margin calculation, or Gold Plus entitlement. Do not infer or invent those facts. A proposed change to service level, term or operational commitment requires additional evidence and validation outside this minimal slice. Missing, conflicting, expired or inaccessible material evidence must stop the workflow safely.",
+      "url": "https://schemas.innexq.invalid/corpus/sla/2026-09-07",
+      "version": "2026-09-07",
+      "valid_until": "2027-09-07T00:00:00Z"
+    },
+    {
+      "id": "playbook",
+      "title": "SYNTHETIC: Contract Renewal Phase 1 playbook",
+      "content": "SYNTHETIC HACKATHON FIXTURE. Contract Renewal is an InnexQ Workflow Pack. Retrieve the contract, pricing policy, approval matrix, SLA boundary and template with source identifiers. The Hosted Agent proposes a grounded explanation and draft. Deterministic tools calculate pricing and check authority. The controller persists Run Events, prepares a versioned brief and immutable action manifest, and requests the designated human's Teams approval. After authorized approval, the isolated executor creates exactly one approved SharePoint file and sends one approved test email to the configured recipient. Preserve audit evidence across resets. Never treat reset, model text, or a Teams message alone as approval.",
+      "url": "https://schemas.innexq.invalid/corpus/playbook/2026-09-07",
+      "version": "2026-09-07",
+      "valid_until": "2027-09-07T00:00:00Z"
+    },
+    {
+      "id": "template",
+      "title": "SYNTHETIC: Renewal output and test-email template",
+      "content": "SYNTHETIC HACKATHON FIXTURE. Output heading: InnexQ synthetic renewal test - not a commercial offer. Include contract identifier, annual baseline, discount percentage, annual net value, currency, 12-month term, unchanged Gold service level, source citations, Run ID and approved brief version. Insert monetary values only from the deterministic tool result. Test email subject: InnexQ synthetic renewal test. Body: This is a synthetic hackathon workflow test, not a commercial offer. The approved renewal test artifact is available at the recorded SharePoint location. Use only the exact sender, recipient, destination and content approved in the action manifest. This template grants no execution capability.",
+      "url": "https://schemas.innexq.invalid/corpus/template/2026-09-07",
+      "version": "2026-09-07",
+      "valid_until": "2027-09-07T00:00:00Z"
+    }
+  ]
+}

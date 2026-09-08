@@ -1,0 +1,12 @@
+{
+  "synthetic": true,
+  "workflow_pack": "contract-renewal",
+  "rule_id": "discount-authority",
+  "rule_version": "2026-08-15",
+  "discount_percent": "8.00",
+  "term_months": 12,
+  "renewal_window_days": 45,
+  "valid_from": "2026-08-15",
+  "valid_until": "2027-09-07",
+  "required_scenario_role": "account_manager"
+}

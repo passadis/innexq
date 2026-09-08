@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "innexq"
+version = "0.1.0"
+description = "Governed enterprise workflow contracts and controller foundation"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "azure-cosmos>=4.9,<5",
+  "azure-identity>=1.24,<2",
+  "azure-ai-projects>=2.0,<3",
+  "azure-monitor-opentelemetry>=1.7,<2",
+  "httpx>=0.28,<1",
+  "PyJWT[crypto]>=2.10,<3",
+  "uvicorn>=0.35,<1",
+  "microsoft-teams-apps>=2.0.16,<3",
+  "fastapi>=0.116,<1",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+]
+
+[dependency-groups]
+dev = [
+  "detect-secrets>=1.5,<2",
+  "httpx>=0.28,<1",
+  "mypy>=1.17,<2",
+  "pytest>=8.4,<9",
+  "pytest-cov>=6.2,<7",
+  "pyyaml>=6,<7",
+  "ruff>=0.12,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "src/api/innexq_api",
+  "src/contracts/innexq_contracts",
+  "src/gateway/innexq_gateway",
+]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers --cov=innexq_contracts --cov=innexq_api --cov-report=term-missing --cov-fail-under=90"
+testpaths = ["tests/unit"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".uv-cache", ".venv", ".test-artifacts", "docs/scenario"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/api", "src/contracts", "src/gateway", "scripts"]
+
+[tool.coverage.run]
+branch = true
+source = ["innexq_api", "innexq_contracts"]

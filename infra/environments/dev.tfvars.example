@@ -1,0 +1,4 @@
+# Non-secret example only. Copy values through azd environment configuration;
+# do not commit tenant-specific or subscription-specific files.
+environment_name = "dev"
+location         = "confirm-before-phase-1"

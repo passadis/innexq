@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!requirements.txt
+!contracts.py
+!retrieval.py
+!main.py

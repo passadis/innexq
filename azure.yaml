@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: innexq
+metadata:
+    template: innexq-phase1@0.1.0
+services:
+    innexq-agent:
+        project: ./src/agent
+        host: azure.ai.agent
+        language: docker
+        docker:
+            path: ./Dockerfile
+            context: .
+            remoteBuild: true
+        env:
+            AZURE_AI_MODEL_DEPLOYMENT_NAME: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
+            AZURE_SEARCH_ENDPOINT: ${AZURE_AI_SEARCH_ENDPOINT}
+            INNEXQ_API_AUDIENCE: ${INNEXQ_API_SCOPE}
+            INNEXQ_API_ENDPOINT: ${INNEXQ_API_URL}
+            KNOWLEDGE_BASE_NAME: innexq-phase1
+            KNOWLEDGE_SOURCE_NAME: innexq-phase1-source
+        container:
+            resources:
+                cpu: "1"
+                memory: 2Gi
+        description: Read-only Contract Renewal evidence reasoning; deterministic validation and human authorization remain in the InnexQ controller.
+        kind: hosted
+        name: innexq-agent
+        protocols:
+            - protocol: responses
+              version: 2.0.0
+    innexq-api:
+        project: .
+        host: containerapp
+        language: python
+        docker:
+            path: ./src/api/Dockerfile
+            context: .
+            remoteBuild: true
+infra:
+    provider: terraform
+    path: ./infra

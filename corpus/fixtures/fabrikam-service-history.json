@@ -1,0 +1,13 @@
+{
+  "synthetic": true,
+  "fixture_version": "1.0.0",
+  "contract_id": "CON-FAB-2025-001",
+  "period_start": "2025-09-30",
+  "period_end": "2026-08-14",
+  "asset_count": 18,
+  "scheduled_visits": 36,
+  "emergency_callouts": 9,
+  "previous_comparable_period_emergency_callouts": 4,
+  "trend": "increased",
+  "source_system": "synthetic-service-register"
+}

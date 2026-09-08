@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "Citation": {
+      "additionalProperties": false,
+      "properties": {
+        "excerpt": {
+          "maxLength": 8000,
+          "minLength": 1,
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "title",
+        "excerpt",
+        "url"
+      ],
+      "title": "Citation",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.innexq.invalid/v1/agent-proposal.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "citations": {
+      "items": {
+        "$ref": "#/$defs/Citation"
+      },
+      "maxItems": 30,
+      "minItems": 1,
+      "title": "Citations",
+      "type": "array"
+    },
+    "summary": {
+      "maxLength": 8000,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    }
+  },
+  "required": [
+    "summary",
+    "citations"
+  ],
+  "title": "AgentProposal",
+  "type": "object"
+}

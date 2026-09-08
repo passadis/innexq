@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+htmlcov/
+.coverage
+
+# Local tool state
+.uv-cache/
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Azure Developer CLI environment state (may contain environment values)
+.azure/*/
+!.azure/deployment-plan.md
+
+# JavaScript
+node_modules/
+dist/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+.test-artifacts/
