@@ -1,0 +1,856 @@
+{
+  "$defs": {
+    "CertificateArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "document_version": {
+          "minLength": 1,
+          "title": "Document Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "document_version",
+        "sha256"
+      ],
+      "title": "CertificateArtifact",
+      "type": "object"
+    },
+    "CertificateAuditEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event_type": {
+          "enum": [
+            "certificate.requested",
+            "certificate.policy_checked",
+            "certificate.release_ready",
+            "certificate.held",
+            "operations.case_created",
+            "certificate.download_prepared"
+          ],
+          "title": "Event Type",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sequence",
+        "event_type",
+        "occurred_at"
+      ],
+      "title": "CertificateAuditEvent",
+      "type": "object"
+    },
+    "CertificateCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": [
+            "ownership",
+            "certificate_validity",
+            "service_status"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "passed",
+            "missing_evidence",
+            "stale_evidence",
+            "ownership_mismatch",
+            "document_unavailable",
+            "document_mismatch",
+            "certificate_outside_validity",
+            "revoked_or_unknown",
+            "service_mismatch",
+            "service_not_current",
+            "artifact_changed",
+            "artifact_unavailable"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "verdict",
+        "reason"
+      ],
+      "title": "CertificateCheck",
+      "type": "object"
+    },
+    "CertificateDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CertificateArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "checks": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/CertificateCheck"
+            },
+            {
+              "$ref": "#/$defs/CertificateCheck"
+            },
+            {
+              "$ref": "#/$defs/CertificateCheck"
+            }
+          ],
+          "title": "Checks",
+          "type": "array"
+        },
+        "evaluated_at": {
+          "format": "date-time",
+          "title": "Evaluated At",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "release_ready",
+            "operations_required"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "policy_id": {
+          "const": "CERT-RELEASE-001",
+          "default": "CERT-RELEASE-001",
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Policy Version",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sources": {
+          "$ref": "#/$defs/CertificateSources"
+        }
+      },
+      "required": [
+        "evaluated_at",
+        "sources",
+        "checks",
+        "outcome"
+      ],
+      "title": "CertificateDecision",
+      "type": "object"
+    },
+    "CertificateInvestigation": {
+      "additionalProperties": false,
+      "properties": {
+        "extraction_api": {
+          "const": "2024-11-30",
+          "default": "2024-11-30",
+          "title": "Extraction Api",
+          "type": "string"
+        },
+        "extraction_model": {
+          "const": "prebuilt-layout",
+          "default": "prebuilt-layout",
+          "title": "Extraction Model",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/DocumentFieldProof"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "specialists": {
+          "items": {
+            "$ref": "#/$defs/SpecialistProof"
+          },
+          "title": "Specialists",
+          "type": "array"
+        },
+        "tool_activity": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EvidenceToolActivity"
+          },
+          "title": "Tool Activity",
+          "type": "array"
+        }
+      },
+      "required": [
+        "request_id",
+        "fields",
+        "specialists"
+      ],
+      "title": "CertificateInvestigation",
+      "type": "object"
+    },
+    "CertificateOperationsCase": {
+      "additionalProperties": false,
+      "properties": {
+        "assigned_user_id": {
+          "format": "uuid",
+          "title": "Assigned User Id",
+          "type": "string"
+        },
+        "case_id": {
+          "format": "uuid",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "enum": [
+              "passed",
+              "missing_evidence",
+              "stale_evidence",
+              "ownership_mismatch",
+              "document_unavailable",
+              "document_mismatch",
+              "certificate_outside_validity",
+              "revoked_or_unknown",
+              "service_mismatch",
+              "service_not_current",
+              "artifact_changed",
+              "artifact_unavailable"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "state": {
+          "const": "open",
+          "default": "open",
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "assigned_user_id",
+        "reason_codes"
+      ],
+      "title": "CertificateOperationsCase",
+      "type": "object"
+    },
+    "CertificateSource": {
+      "additionalProperties": false,
+      "properties": {
+        "accessible": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Accessible"
+        },
+        "customer_id": {
+          "minLength": 1,
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "document_id": {
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "document_version": {
+          "minLength": 1,
+          "title": "Document Version",
+          "type": "string"
+        },
+        "equipment_id": {
+          "minLength": 1,
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "fresh_until": {
+          "format": "date-time",
+          "title": "Fresh Until",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "revoked": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Revoked"
+        },
+        "serial_number": {
+          "minLength": 1,
+          "title": "Serial Number",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_version": {
+          "minLength": 1,
+          "title": "Source Version",
+          "type": "string"
+        },
+        "valid_from": {
+          "format": "date-time",
+          "title": "Valid From",
+          "type": "string"
+        },
+        "valid_until": {
+          "format": "date-time",
+          "title": "Valid Until",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_version",
+        "observed_at",
+        "fresh_until",
+        "customer_id",
+        "equipment_id",
+        "serial_number",
+        "document_id",
+        "document_version",
+        "sha256",
+        "valid_from",
+        "valid_until",
+        "accessible",
+        "revoked"
+      ],
+      "title": "CertificateSource",
+      "type": "object"
+    },
+    "CertificateSources": {
+      "additionalProperties": false,
+      "description": "Trusted adapters supply facts; agents do not supply executable verdicts.",
+      "properties": {
+        "certificate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CertificateSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "investigation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CertificateInvestigation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ownership": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OwnershipSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "service": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServiceSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "CertificateSources",
+      "type": "object"
+    },
+    "CustomerRequestContext": {
+      "additionalProperties": false,
+      "properties": {
+        "customer_messages": {
+          "items": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Customer Messages",
+          "type": "array"
+        },
+        "equipment_id": {
+          "maxLength": 80,
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "interpreted_intent": {
+          "const": "certificate_request",
+          "default": "certificate_request",
+          "title": "Interpreted Intent",
+          "type": "string"
+        },
+        "interpreter_response_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interpreter Response Id"
+        }
+      },
+      "required": [
+        "customer_messages",
+        "equipment_id"
+      ],
+      "title": "CustomerRequestContext",
+      "type": "object"
+    },
+    "DocumentFieldProof": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "document_version": {
+          "minLength": 1,
+          "title": "Document Version",
+          "type": "string"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "polygon": {
+          "items": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ]
+          },
+          "maxItems": 64,
+          "minItems": 8,
+          "title": "Polygon",
+          "type": "array"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "document_version",
+        "sha256",
+        "label",
+        "value",
+        "page",
+        "polygon"
+      ],
+      "title": "DocumentFieldProof",
+      "type": "object"
+    },
+    "EvidenceToolActivity": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "format": "uuid",
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "document_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Document Id"
+        },
+        "receipt_id": {
+          "format": "uuid",
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "source_version": {
+          "minLength": 1,
+          "title": "Source Version",
+          "type": "string"
+        },
+        "specialist": {
+          "enum": [
+            "document_analyst",
+            "equipment_service"
+          ],
+          "title": "Specialist",
+          "type": "string"
+        },
+        "tool_name": {
+          "enum": [
+            "get_equipment_record",
+            "list_equipment_documents",
+            "analyze_document",
+            "retrieve_policy"
+          ],
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "receipt_id",
+        "specialist",
+        "tool_name",
+        "source_version",
+        "completed_at"
+      ],
+      "title": "EvidenceToolActivity",
+      "type": "object"
+    },
+    "OwnershipSource": {
+      "additionalProperties": false,
+      "properties": {
+        "customer_id": {
+          "minLength": 1,
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "equipment_id": {
+          "minLength": 1,
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "fresh_until": {
+          "format": "date-time",
+          "title": "Fresh Until",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "serial_number": {
+          "minLength": 1,
+          "title": "Serial Number",
+          "type": "string"
+        },
+        "source_version": {
+          "minLength": 1,
+          "title": "Source Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_version",
+        "observed_at",
+        "fresh_until",
+        "customer_id",
+        "equipment_id",
+        "serial_number"
+      ],
+      "title": "OwnershipSource",
+      "type": "object"
+    },
+    "ServiceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "customer_id": {
+          "minLength": 1,
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "equipment_id": {
+          "minLength": 1,
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "fresh_until": {
+          "format": "date-time",
+          "title": "Fresh Until",
+          "type": "string"
+        },
+        "in_service": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "In Service"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "serial_number": {
+          "minLength": 1,
+          "title": "Serial Number",
+          "type": "string"
+        },
+        "source_version": {
+          "minLength": 1,
+          "title": "Source Version",
+          "type": "string"
+        },
+        "valid_from": {
+          "format": "date-time",
+          "title": "Valid From",
+          "type": "string"
+        },
+        "valid_until": {
+          "format": "date-time",
+          "title": "Valid Until",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_version",
+        "observed_at",
+        "fresh_until",
+        "customer_id",
+        "equipment_id",
+        "serial_number",
+        "valid_from",
+        "valid_until",
+        "in_service"
+      ],
+      "title": "ServiceSource",
+      "type": "object"
+    },
+    "SpecialistProof": {
+      "additionalProperties": false,
+      "properties": {
+        "response_id": {
+          "minLength": 1,
+          "title": "Response Id",
+          "type": "string"
+        },
+        "specialist": {
+          "enum": [
+            "request_coordinator",
+            "document_analyst",
+            "equipment_service"
+          ],
+          "title": "Specialist",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "specialist",
+        "response_id",
+        "summary"
+      ],
+      "title": "SpecialistProof",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.innexq.invalid/v1/certificate-request-record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actor_user_id": {
+      "format": "uuid",
+      "title": "Actor User Id",
+      "type": "string"
+    },
+    "customer_id": {
+      "minLength": 1,
+      "title": "Customer Id",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/CertificateDecision"
+    },
+    "decision_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Hash",
+      "type": "string"
+    },
+    "equipment_id": {
+      "minLength": 1,
+      "title": "Equipment Id",
+      "type": "string"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/CertificateAuditEvent"
+      },
+      "minItems": 3,
+      "title": "Events",
+      "type": "array"
+    },
+    "operations_case": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CertificateOperationsCase"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "request_context": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CustomerRequestContext"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "workflow_pack": {
+      "const": "certificate_fulfilment",
+      "default": "certificate_fulfilment",
+      "title": "Workflow Pack",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "tenant_id",
+    "actor_user_id",
+    "customer_id",
+    "equipment_id",
+    "decision",
+    "decision_hash",
+    "operations_case",
+    "events"
+  ],
+  "title": "CertificateRequestRecord",
+  "type": "object"
+}

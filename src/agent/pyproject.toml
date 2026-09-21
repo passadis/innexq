@@ -22,7 +22,7 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q --cov=contracts --cov=retrieval --cov=main --cov-report=term-missing --cov-fail-under=90"
+addopts = "-q --cov=contracts --cov=retrieval --cov=main --cov=certificate_team --cov=evidence_toolbox --cov=evidence_transport --cov=evidence_team --cov=evidence_dispatch --cov-report=term-missing --cov-fail-under=90"
 
 [tool.ruff]
 target-version = "py312"

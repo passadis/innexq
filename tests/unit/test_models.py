@@ -95,11 +95,18 @@ def test_synthetic_fixtures_are_consistent() -> None:
     assert Classification.RESTRICTED.value == "restricted"
 
 
-def test_phase_one_azure_scope_is_frozen() -> None:
+def test_approved_azure_scope_is_frozen() -> None:
     azure_manifest = yaml.safe_load(Path("azure.yaml").read_text(encoding="utf-8"))
     assert azure_manifest["infra"] == {"provider": "terraform", "path": "./infra"}
     assert "innexq-api" in azure_manifest["services"]
-    assert set(azure_manifest["services"]) <= {"innexq-api", "innexq-agent"}
+    # ADR-013 extends the product with the separately hosted E1 customer/team path.
+    assert set(azure_manifest["services"]) == {
+        "innexq-api",
+        "innexq-agent",
+        "innexq-web",
+        "innexq-customer",
+        "innexq-certificate-team",
+    }
 
     terraform_source = "\n".join(
         path.read_text(encoding="utf-8") for path in Path("infra").glob("*.tf")

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import struct
 from datetime import UTC, datetime
 from pathlib import Path
@@ -147,6 +148,8 @@ def test_actor_destination_must_all_match(bridge, settings, field):
     bridge.bind(controller)
     result = asyncio.run(bridge.on_card_action(ctx))
     assert "could not accept" in result.value
+    assert "No new authorization was granted" not in result.value
+    assert "do not re-approve" in result.value
     controller.decide.assert_not_called()
 
 
@@ -192,11 +195,104 @@ def test_decision_controller_receives_verified_identity_and_version(bridge, sett
             SimpleNamespace(activity=AdaptiveCardInvokeActivity.model_validate(activity(settings)))
         )
     )
-    assert "EXECUTED" in result.value
+    assert "EXECUTED" in result.value.model_dump_json()
     args, kwargs = controller.decide.call_args
     assert args[:3] == (RUN_ID, settings.tenant_id, settings.approver_user_id)
     assert kwargs == {"brief_version": 1}
     controller.execute.assert_awaited_once_with(RUN_ID)
+
+
+@pytest.mark.parametrize("field", ["platform", "tenant", "actor", "team_group", "channel"])
+@pytest.mark.parametrize("missing", [False, True])
+def test_callback_diagnostics_only_log_fixed_failed_check_names(
+    bridge, settings, caplog, field, missing
+):
+    raw = activity(settings)
+    paths = {
+        "platform": (raw, "channelId"),
+        "tenant": (raw["channelData"]["tenant"], "id"),
+        "actor": (raw["from"], "aadObjectId"),
+        "team_group": (raw["channelData"]["team"], "aadGroupId"),
+        "channel": (raw["channelData"]["channel"], "id"),
+    }
+    container, key = paths[field]
+    if missing:
+        container.pop(key)
+    else:
+        container[key] = "private-incoming-value"
+    # A model-like activity also covers absent required transport fields. The SDK
+    # rejects these earlier in production; the adapter must still remain closed.
+    lookup = AsyncMock(side_effect=RuntimeError("private-incoming-value"))
+    ctx = SimpleNamespace(
+        activity=SimpleNamespace(model_dump=lambda **_: raw),
+        conversation_ref=reference(settings),
+        api=SimpleNamespace(teams=SimpleNamespace(get_by_id=lookup)),
+    )
+    controller = MagicMock()
+    bridge.bind(controller)
+    with caplog.at_level(logging.WARNING, logger="innexq.audit"):
+        result = asyncio.run(bridge.on_card_action(ctx))
+    logs = [r for r in caplog.records if r.name == "innexq.audit"]
+    assert len(logs) == 1
+    log = logs[0]
+    assert log.msg == "teams_callback_rejected"
+    assert log.failed_checks == (
+        "team_lookup.failed"
+        if field == "team_group" and missing
+        else f"{field}.{'missing' if missing else 'mismatch'}"
+    )
+    assert log.args == () and log.exc_info is None and log.stack_info is None
+    for value in ("private-incoming-value", settings.approver_user_id, settings.tenant_id):
+        assert value not in repr(log.__dict__)
+    assert "could not accept" in result.value
+    assert log.failed_checks not in result.value
+    controller.decide.assert_not_called()
+    controller.execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "stage",
+    [
+        "card_action",
+        "card_payload",
+        "controller_binding",
+        "controller_decision",
+        "controlled_execution",
+    ],
+)
+def test_callback_stage_diagnostics_never_log_exception_or_card_data(
+    bridge, settings, caplog, stage
+):
+    raw = activity(settings)
+    controller = MagicMock()
+    bridge.bind(controller)
+    if stage == "card_action":
+        raw["value"]["action"]["verb"] = "private-incoming-value"
+    elif stage == "card_payload":
+        raw["value"]["action"]["data"]["unexpected"] = "private-incoming-value"
+    elif stage == "controller_binding":
+        bridge.controller = None
+    elif stage == "controller_decision":
+        controller.decide.side_effect = Denied("private-incoming-value")
+    else:
+        current = record()
+        controller.decide.return_value = current.model_copy(
+            update={"approval": approval(current.envelope)}
+        )
+        controller.execute = AsyncMock(side_effect=Denied("private-incoming-value"))
+    with caplog.at_level(logging.WARNING, logger="innexq.audit"):
+        result = asyncio.run(
+            bridge.on_card_action(
+                SimpleNamespace(activity=AdaptiveCardInvokeActivity.model_validate(raw))
+            )
+        )
+    logs = [r for r in caplog.records if r.name == "innexq.audit"]
+    assert len(logs) == 1
+    assert logs[0].failed_checks == stage
+    assert logs[0].exc_info is None and logs[0].args == ()
+    assert "private-incoming-value" not in repr(logs[0].__dict__)
+    assert str(RUN_ID) not in repr(logs[0].__dict__)
+    assert "could not accept" in result.value
 
 
 def test_rejection_never_calls_executor_and_unbound_fails(bridge, settings):

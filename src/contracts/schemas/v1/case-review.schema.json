@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "CaseCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "acknowledge",
+            "add_note",
+            "close_without_release"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "case_id": {
+          "format": "uuid",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "command_id": {
+          "format": "uuid",
+          "title": "Command Id",
+          "type": "string"
+        },
+        "decision_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Decision Hash",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command_id",
+        "case_id",
+        "decision_hash",
+        "expected_revision",
+        "action"
+      ],
+      "title": "CaseCommand",
+      "type": "object"
+    },
+    "CaseReviewEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_user_id": {
+          "format": "uuid",
+          "title": "Actor User Id",
+          "type": "string"
+        },
+        "command": {
+          "$ref": "#/$defs/CaseCommand"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sequence",
+        "actor_user_id",
+        "occurred_at",
+        "command"
+      ],
+      "title": "CaseReviewEvent",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.innexq.invalid/v1/case-review.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assigned_user_id": {
+      "format": "uuid",
+      "title": "Assigned User Id",
+      "type": "string"
+    },
+    "case_id": {
+      "format": "uuid",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "decision_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Hash",
+      "type": "string"
+    },
+    "events": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CaseReviewEvent"
+      },
+      "maxItems": 1000,
+      "title": "Events",
+      "type": "array"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "revision": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "default": "open",
+      "enum": [
+        "open",
+        "acknowledged",
+        "closed_without_release"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "tenant_id",
+    "case_id",
+    "assigned_user_id",
+    "decision_hash"
+  ],
+  "title": "CaseReview",
+  "type": "object"
+}

@@ -1,0 +1,18 @@
+{
+  "description": "InnexQ scoped read-only certificate evidence. Agent identity; no execution tools.",
+  "tools": [
+    {
+      "type": "mcp",
+      "server_label": "innexq_evidence",
+      "server_url": "https://ca-innexq-dev-api.delightfulstone-498e0b81.swedencentral.azurecontainerapps.io/api/evidence/mcp",
+      "project_connection_id": "innexq-evidence",
+      "allowed_tools": [
+        "get_equipment_record",
+        "list_equipment_documents",
+        "analyze_document",
+        "retrieve_policy"
+      ],
+      "require_approval": "never"
+    }
+  ]
+}

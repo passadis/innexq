@@ -1,0 +1,9 @@
+{
+  "mode": "customer_message",
+  "request_id": "c62b3402-6a41-472b-99db-9684bdb35a10",
+  "tenant_id": "35de4c50-7dcd-4871-8685-61789c017da2",
+  "customer_id": "DEMO-FAB",
+  "equipment_ids": ["DEMO-PT-001", "DEMO-PT-002", "DEMO-PT-003"],
+  "selected_equipment_id": null,
+  "messages": ["Provice Certificate for PT-002"]
+}

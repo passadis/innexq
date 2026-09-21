@@ -1,0 +1,51 @@
+{
+  "$id": "https://schemas.innexq.invalid/v1/customer-message.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "equipment_id": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Equipment Id"
+    },
+    "message_id": {
+      "format": "uuid",
+      "title": "Message Id",
+      "type": "string"
+    },
+    "parent_message_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Message Id"
+    },
+    "prompt": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Prompt",
+      "type": "string"
+    }
+  },
+  "required": [
+    "message_id",
+    "prompt"
+  ],
+  "title": "CustomerMessage",
+  "type": "object"
+}

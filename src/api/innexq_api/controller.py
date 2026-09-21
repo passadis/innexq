@@ -44,7 +44,9 @@ from innexq_contracts.models import (
 from innexq_contracts.transitions import assert_transition
 from innexq_gateway import calculate_pricing, check_authority
 
+from innexq_api.assembly_diagnostics import reason_code
 from innexq_api.config import Settings
+from innexq_api.presentation import renewal_email
 from innexq_api.store import Conflict, Store
 
 CONTRACT_ID = "CON-FAB-2025-001"
@@ -289,14 +291,19 @@ class Controller:
             target=RunState.CONTEXT_ASSEMBLING,
             details={"command_key": digest(key) if key else "", "request_revision": str(revision)},
         )
+        stage = "initial_facts"
         try:
             self.current_facts(record)
+            stage = "agent_proposal"
             proposal = await self.agent.propose(record.run)
+            stage = "reload_run"
             # The read-only pricing callback commits its own audit event while the agent runs.
             record = self.store.get(run_id)
             if record.run.state != RunState.CONTEXT_ASSEMBLING:
                 raise Conflict("assembly state changed")
+            stage = "validate_evidence"
             self.validate_evidence(proposal)
+            stage = "recheck_facts"
             self.current_facts(record)
             evidence = [
                 EvidenceItem(
@@ -316,6 +323,7 @@ class Controller:
                 )
                 for c in proposal.citations
             ]
+            stage = "persist_evidence"
             record = self.record(
                 record,
                 "evidence.validated",
@@ -324,11 +332,14 @@ class Controller:
                 proposal=proposal,
                 evidence=evidence,
             )
+            stage = "build_brief"
             envelope = self.build_brief(record, proposal)
+            stage = "persist_policy"
             record = self.record(
                 record, "policy.verified", actor, target=RunState.POLICY_VERIFIED, envelope=envelope
             )
             # The brief pointer and its event are committed atomically together.
+            stage = "persist_brief"
             record = self.record(
                 record,
                 "brief.versioned",
@@ -352,7 +363,13 @@ class Controller:
                 "evidence.hold",
                 actor,
                 target=RunState.EVIDENCE_HOLD,
-                details={"error_type": type(exc).__name__},
+                details={
+                    "error_type": type(exc).__name__,
+                    "failed_stage": stage,
+                    "reason_code": reason_code(str(exc))
+                    if isinstance(exc, Denied)
+                    else "unclassified",
+                },
             )
             raise Denied("assembly failed safely; inspect Run Events") from exc
 
@@ -377,7 +394,10 @@ class Controller:
             + "Evidence (synthetic corpus locators):\n"
             + "\n".join(f"{c.title}: {c.url}\n{c.excerpt}" for c in proposal.citations)
         )
-        subject = f"[INNEXQ SYNTHETIC DEMO] Renewal {rid}"
+        subject = f"[InnexQ Demo] {facts['customer_name']} | Renewal summary v{version}"
+        email_content = renewal_email(
+            facts, price, rid, version, filename, self.settings.graph_output_folder_url
+        )
         actions = [
             Action(
                 action_id=uuid4(),
@@ -398,9 +418,10 @@ class Controller:
                     "sender": self.settings.sender_mailbox,
                     "recipient": self.settings.test_recipient,
                     "subject": subject,
-                    "content": content,
+                    "content": email_content,
+                    "content_type": "HTML",
                 },
-                artifact_hash=digest(content),
+                artifact_hash=digest(email_content),
                 idempotency_key=f"{rid}:mail:v{version}",
             ),
         ]
@@ -462,7 +483,7 @@ class Controller:
             presentation=Presentation(
                 plain_language_summary=proposal.summary,
                 detailed_summary=content,
-                customer_language_drafts={"en-GB": content},
+                customer_language_drafts={"en-GB": email_content},
             ),
         )
         return version_brief(brief, manifest, previous=record.envelope)

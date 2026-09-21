@@ -122,20 +122,34 @@ def test_workload_credentials_are_explicit(monkeypatch: Any) -> None:
     managed.assert_called_once_with(client_id="identity")
 
 
-def test_foundry_invocation_binds_only_run_identifiers(system: Any, monkeypatch: Any) -> None:
+@pytest.mark.parametrize("status", ["completed", "failed", "incomplete", "cancelled"])
+def test_foundry_invocation_binds_only_run_identifiers(
+    system: Any, monkeypatch: Any, status: str
+) -> None:
     c, _, fake, _, _ = system
     r = detected(c)
     project = MagicMock()
     response_client = MagicMock()
     project.__enter__.return_value = project
+    project.agents.create_session.return_value.agent_session_id = "fresh-run-session"
     project.get_openai_client.return_value.__enter__.return_value = response_client
     response_client.responses.create.return_value.output_text = fake.proposal.model_dump_json()
+    response_client.responses.create.return_value.status = status
     monkeypatch.setattr("azure.ai.projects.AIProjectClient", MagicMock(return_value=project))
-    result = asyncio.run(FoundryAgent(c.settings, MagicMock()).propose(r.run))
-    assert result == fake.proposal
+    if status == "completed":
+        result = asyncio.run(FoundryAgent(c.settings, MagicMock()).propose(r.run))
+        assert result == fake.proposal
+    else:
+        with pytest.raises(Denied, match="did not complete"):
+            asyncio.run(FoundryAgent(c.settings, MagicMock()).propose(r.run))
     kwargs = response_client.responses.create.call_args.kwargs
     assert "annual_value" not in kwargs["input"]
-    assert kwargs["extra_body"]["agent"]["name"] == "innexq-agent"
+    project.get_openai_client.assert_called_once_with(agent_name="innexq-agent", max_retries=0)
+    session_args = project.agents.create_session.call_args.kwargs
+    assert session_args["agent_name"] == "innexq-agent"
+    assert session_args["version_indicator"].agent_version == c.settings.foundry_agent_version
+    assert kwargs["extra_body"] == {"agent_session_id": "fresh-run-session"}
+    assert "conversation" not in kwargs and "previous_response_id" not in kwargs
 
 
 @pytest.fixture

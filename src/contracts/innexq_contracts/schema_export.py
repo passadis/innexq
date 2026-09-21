@@ -4,6 +4,15 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from innexq_contracts.case_review import CaseCommand, CaseReview
+from innexq_contracts.certificates import CertificateRequestRecord, CertificateSources
+from innexq_contracts.customer_conversation import (
+    CustomerMessage,
+    CustomerMessageRecord,
+    CustomerReply,
+)
+from innexq_contracts.customer_status import CustomerCertificateStatus
+from innexq_contracts.enterprise import EnterpriseDemoCatalog
 from innexq_contracts.events import AgentProposal, RunEvent, RunRecord
 from innexq_contracts.models import (
     ActionManifest,
@@ -14,6 +23,15 @@ from innexq_contracts.models import (
 )
 
 SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "customer-certificate-status.schema.json": CustomerCertificateStatus,
+    "customer-message.schema.json": CustomerMessage,
+    "customer-reply.schema.json": CustomerReply,
+    "customer-message-record.schema.json": CustomerMessageRecord,
+    "case-command.schema.json": CaseCommand,
+    "case-review.schema.json": CaseReview,
+    "certificate-request-record.schema.json": CertificateRequestRecord,
+    "certificate-sources.schema.json": CertificateSources,
+    "enterprise-demo-catalog.schema.json": EnterpriseDemoCatalog,
     "run-event.schema.json": RunEvent,
     "run-record.schema.json": RunRecord,
     "agent-proposal.schema.json": AgentProposal,

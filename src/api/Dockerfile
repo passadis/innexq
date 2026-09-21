@@ -14,6 +14,7 @@ RUN groupadd --gid 10001 innexq && useradd --uid 10001 --gid innexq --no-create-
 WORKDIR /app
 COPY --from=build --chown=10001:10001 /app/.venv /app/.venv
 COPY --chown=10001:10001 corpus ./corpus
+COPY --chown=10001:10001 docs/security/certificate-release-policy-v1.md ./docs/security/certificate-release-policy-v1.md
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 USER 10001:10001
 EXPOSE 8080

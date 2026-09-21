@@ -21,6 +21,15 @@ You are InnexQ's single Contract Renewal reasoning agent. The controller sends
 only a JSON Run request. Call retrieve_evidence for the contract, pricing policy,
 authority matrix, SLA, renewal playbook and document template. Call
 calculate_pricing_authority exactly once. Both tools are read-only.
+Use six focused initial retrieval queries, one for each source title:
+"Fabrikam Phase 1 contract"; "Phase 1 pricing policy";
+"Phase 1 approval matrix"; "Phase 1 service-level boundary";
+"Contract Renewal Phase 1 playbook"; "Renewal output and test-email template".
+Policies, authority, SLA and templates are shared documents: do not add a
+contract ID or a contract_id: prefix to these queries. Such prefixes are search
+text, not filters. Inspect returned source_id values. If a category is absent,
+use at most two additional focused queries for the missing categories, then
+stop safely if evidence is still missing. Never manufacture a missing citation.
 Produce only JSON matching the proposal schema: summary and citations. Copy
 source_id, title, excerpt and url exactly from retrieved citations. Include all
 six source documents: contract, pricing, authority, sla, playbook, template.
@@ -81,6 +90,10 @@ class ProposalGuard(AgentMiddleware):
         request = RunRequest.model_validate_json(user_messages[0].text)
         citations: dict[str, Citation] = {}
         state = {"pricing_called": False, "failed": False, "retrieval_calls": 0}
+        # Bound fan-out within this proposal. Concurrent Search requests have
+        # returned HTTP 200 with empty references in the Phase 1 environment.
+        # This changes scheduling only: no retries or relaxed evidence checks.
+        retrieval_lock = asyncio.Lock()
 
         async def retrieve_evidence(query: str) -> list[dict[str, str]]:
             """Retrieve cited synthetic Contract Renewal evidence from Foundry IQ."""
@@ -88,13 +101,14 @@ class ProposalGuard(AgentMiddleware):
                 state["retrieval_calls"] += 1
                 if not query.strip() or len(query) > 1000 or state["retrieval_calls"] > 8:
                     raise ValueError("Invalid or excessive evidence query")
-                result = await retrieve(
-                    self.credential,
-                    self.search_endpoint,
-                    self.knowledge_base,
-                    self.source_name,
-                    query,
-                )
+                async with retrieval_lock:
+                    result = await retrieve(
+                        self.credential,
+                        self.search_endpoint,
+                        self.knowledge_base,
+                        self.source_name,
+                        query,
+                    )
                 for citation in result:
                     if (
                         citation.source_id in citations
@@ -157,7 +171,7 @@ class ProposalGuard(AgentMiddleware):
             return response
 
         context.tools = [retrieve_evidence, calculate_pricing_authority]
-        context.options = {**context.options, "response_format": Proposal, "store": False}
+        context.options = {**(context.options or {}), "response_format": Proposal, "store": False}
         await call_next()
         if isinstance(context.result, ResponseStream):
             original = context.result
@@ -184,6 +198,12 @@ async def main() -> None:
     # No prompt, response, or tool-content capture in automatic telemetry.
     os.environ["AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED"] = "false"
     os.environ["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"] = "false"
+    # Defense in depth for instrumentation installed outside the scope-stripping middleware.
+    os.environ["OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST"] = ""
+    os.environ["OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_CLIENT_REQUEST"] = ""
+    os.environ["OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SANITIZE_FIELDS"] = (
+        ".*authorization.*,.*cookie.*,x-client-innexq-evidence-.*"
+    )
     credential = DefaultAzureCredential()
     try:
         client = FoundryChatClient(
@@ -191,18 +211,39 @@ async def main() -> None:
             model=required("AZURE_AI_MODEL_DEPLOYMENT_NAME"),
             credential=credential,
         )
-        agent = Agent(
-            client=client,
-            name="innexq-agent",
-            instructions=INSTRUCTIONS,
-            middleware=[ProposalGuard(credential)],
-            default_options={
-                "store": False,
-                "response_format": Proposal,
-                "max_output_tokens": 16000,
-            },
-        )
-        await ResponsesHostServer(agent).run_async()
+        if os.environ.get("INNEXQ_AGENT_PACK") == "certificate_fulfilment":
+            from certificate_team import certificate_team
+
+            if os.environ.get("INNEXQ_EVIDENCE_TOOLS_ENABLED", "false") == "true":
+                from evidence_dispatch import candidate_certificate_team
+                from evidence_toolbox import validate_toolbox_endpoint
+
+                toolbox_endpoint = required("TOOLBOX_ENDPOINT")
+                project_endpoint = required("FOUNDRY_PROJECT_ENDPOINT")
+                validate_toolbox_endpoint(toolbox_endpoint, project_endpoint)
+                agent = candidate_certificate_team(
+                    client, credential, toolbox_endpoint, project_endpoint
+                )
+            else:
+                agent = certificate_team(client)
+        else:
+            agent = Agent(
+                client=client,
+                name="innexq-agent",
+                instructions=INSTRUCTIONS,
+                middleware=[ProposalGuard(credential)],
+                default_options={
+                    "store": False,
+                    "response_format": Proposal,
+                    "max_output_tokens": 16000,
+                },
+            )
+        host = ResponsesHostServer(agent)
+        if os.environ.get("INNEXQ_EVIDENCE_TOOLS_ENABLED", "false") == "true":
+            from evidence_transport import EvidenceHandleMiddleware
+
+            host.add_middleware(EvidenceHandleMiddleware)
+        await host.run_async()
     finally:
         credential.close()
 

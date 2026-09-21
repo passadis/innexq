@@ -1,0 +1,49 @@
+{
+  "$id": "https://schemas.innexq.invalid/v1/customer-certificate-status.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "case_status": {
+      "enum": [
+        "not_required",
+        "open",
+        "acknowledged",
+        "closed_without_release"
+      ],
+      "title": "Case Status",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "release_ready",
+        "operations_required"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "status",
+    "message",
+    "case_status",
+    "updated_at"
+  ],
+  "title": "CustomerCertificateStatus",
+  "type": "object"
+}

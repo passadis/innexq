@@ -15,9 +15,15 @@
 **/*.tfstate*
 infra
 tests
-docs
+docs/*
+!docs/security/
+docs/security/*
+!docs/security/certificate-release-policy-v1.md
 docs_blueprint
 teams
 dist
 .coverage
 htmlcov
+**/node_modules
+**/.venv
+**/dist

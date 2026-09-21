@@ -1,29 +1,42 @@
 locals {
-  api_env = {
-    INNEXQ_ENVIRONMENT                        = "dev"
-    INNEXQ_TENANT_ID                          = var.tenant_id
-    INNEXQ_API_AUDIENCE                       = azuread_application.api.client_id
-    INNEXQ_APPROVER_USER_ID                   = var.approver_user_id
-    INNEXQ_MANAGED_IDENTITY_CLIENT_ID         = azurerm_user_assigned_identity.api.client_id
-    INNEXQ_AGENT_PRINCIPAL_ID                 = var.agent_principal_id
-    INNEXQ_COSMOS_ENDPOINT                    = azurerm_cosmosdb_account.main.endpoint
-    INNEXQ_COSMOS_DATABASE                    = azurerm_cosmosdb_sql_database.main.name
-    INNEXQ_COSMOS_CONTAINER                   = azurerm_cosmosdb_sql_container.runs.name
-    INNEXQ_GRAPH_SITE_ID                      = var.graph_site_id
-    INNEXQ_GRAPH_DRIVE_ID                     = var.graph_drive_id
-    INNEXQ_GRAPH_FOLDER_ID                    = var.graph_folder_id
-    INNEXQ_SENDER_MAILBOX                     = "superuser@alfacloud.gr"
-    INNEXQ_TEST_RECIPIENT                     = "passadis@outlook.com"
-    INNEXQ_TEAMS_TEAM_ID                      = "ee42f3fa-d2aa-4033-99ef-bddea5363b46"
-    INNEXQ_TEAMS_CHANNEL_ID                   = "19:f87553c02fda46978cf84bf2e965dcf3@thread.tacv2"
-    INNEXQ_FOUNDRY_PROJECT_ENDPOINT           = "https://${azurerm_cognitive_account.main.custom_subdomain_name}.services.ai.azure.com/api/projects/${azapi_resource.project.name}"
-    INNEXQ_FOUNDRY_AGENT_NAME                 = "innexq-agent"
+  api_env = merge({
+    INNEXQ_WEB_ORIGINS      = jsonencode([local.web_origin])
+    INNEXQ_ENVIRONMENT      = "dev"
+    INNEXQ_TENANT_ID        = var.tenant_id
+    INNEXQ_API_AUDIENCE     = azuread_application.api.client_id
+    INNEXQ_APPROVER_USER_ID = var.approver_user_id
+    # ADR-014: owner-approved read-only employee, no approval authority.
+    INNEXQ_MANAGER_USER_ID            = "4243bff0-ef6a-4c2a-a3ae-8ee20fd4a1b8"
+    INNEXQ_MANAGED_IDENTITY_CLIENT_ID = azurerm_user_assigned_identity.api.client_id
+    INNEXQ_AGENT_PRINCIPAL_ID         = var.agent_principal_id
+    INNEXQ_COSMOS_ENDPOINT            = azurerm_cosmosdb_account.main.endpoint
+    INNEXQ_COSMOS_DATABASE            = azurerm_cosmosdb_sql_database.main.name
+    INNEXQ_COSMOS_CONTAINER           = azurerm_cosmosdb_sql_container.runs.name
+    INNEXQ_GRAPH_SITE_ID              = var.graph_site_id
+    INNEXQ_GRAPH_DRIVE_ID             = var.graph_drive_id
+    INNEXQ_GRAPH_FOLDER_ID            = var.graph_folder_id
+    INNEXQ_GRAPH_OUTPUT_FOLDER_URL    = "https://passadisoutlook498.sharepoint.com/sites/InnexQ/InnexQDocs/Output"
+    INNEXQ_SENDER_MAILBOX             = "superuser@alfacloud.gr"
+    INNEXQ_TEST_RECIPIENT             = "passadis@outlook.com"
+    INNEXQ_TEAMS_TEAM_ID              = "ee42f3fa-d2aa-4033-99ef-bddea5363b46"
+    INNEXQ_TEAMS_CHANNEL_ID           = "19:f87553c02fda46978cf84bf2e965dcf3@thread.tacv2"
+    INNEXQ_FOUNDRY_PROJECT_ENDPOINT   = "https://${azurerm_cognitive_account.main.custom_subdomain_name}.services.ai.azure.com/api/projects/${azapi_resource.project.name}"
+    INNEXQ_FOUNDRY_AGENT_NAME         = "innexq-agent"
+    # Explicit release pin: version 2 contains the validated retrieval scheduler.
+    # Do not resolve 'latest' at runtime or rely on the local Settings default.
+    INNEXQ_FOUNDRY_AGENT_VERSION              = "2"
     AZURE_CLIENT_ID                           = azurerm_user_assigned_identity.api.client_id
     APPLICATIONINSIGHTS_AUTHENTICATION_STRING = "Authorization=AAD;ClientId=${azurerm_user_assigned_identity.api.client_id}"
-  }
+  }, local.certificate_api_env, local.evidence_api_env)
 }
 
 resource "azurerm_container_app_environment" "main" {
+  workload_profile {
+    name                  = "Consumption"
+    workload_profile_type = "Consumption"
+    minimum_count         = 0
+    maximum_count         = 0
+  }
   name                       = "cae-${var.environment_name}"
   resource_group_name        = azurerm_resource_group.main.name
   location                   = var.location
@@ -32,13 +45,14 @@ resource "azurerm_container_app_environment" "main" {
 }
 
 resource "azurerm_container_app" "api" {
+  workload_profile_name        = "Consumption"
   name                         = "ca-${var.environment_name}-api"
   resource_group_name          = azurerm_resource_group.main.name
   container_app_environment_id = azurerm_container_app_environment.main.id
   revision_mode                = "Single"
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.api.id]
+    identity_ids = concat([azurerm_user_assigned_identity.api.id], azurerm_user_assigned_identity.certificate_reader[*].id)
   }
   registry {
     server   = azurerm_container_registry.main.login_server
@@ -49,7 +63,7 @@ resource "azurerm_container_app" "api" {
     value = azurerm_application_insights.main.connection_string
   }
   template {
-    min_replicas = 0
+    min_replicas = var.certificate_runtime_enabled ? 1 : 0
     max_replicas = 1
     container {
       name = "innexq-api"

@@ -1,0 +1,255 @@
+{
+  "$defs": {
+    "CustomerCitation": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "document_version": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Document Version",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "value": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "document_version",
+        "page",
+        "label",
+        "value"
+      ],
+      "title": "CustomerCitation",
+      "type": "object"
+    },
+    "CustomerMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "equipment_id": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "pattern": "^DEMO-[A-Z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equipment Id"
+        },
+        "message_id": {
+          "format": "uuid",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "parent_message_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Message Id"
+        },
+        "prompt": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Prompt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id",
+        "prompt"
+      ],
+      "title": "CustomerMessage",
+      "type": "object"
+    },
+    "CustomerReply": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "can_confirm": {
+          "default": false,
+          "title": "Can Confirm",
+          "type": "boolean"
+        },
+        "citations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CustomerCitation"
+          },
+          "maxItems": 30,
+          "title": "Citations",
+          "type": "array"
+        },
+        "equipment_id": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "pattern": "^DEMO-[A-Z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Equipment Id"
+        },
+        "intent": {
+          "enum": [
+            "certificate_request",
+            "service_status",
+            "certificate_status",
+            "service_request",
+            "general",
+            "clarify"
+          ],
+          "title": "Intent",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "answer",
+            "clarification",
+            "confirmation_required",
+            "unsupported"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "message_id": {
+          "format": "uuid",
+          "title": "Message Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id",
+        "intent",
+        "equipment_id",
+        "kind",
+        "message"
+      ],
+      "title": "CustomerReply",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.innexq.invalid/v1/customer-message-record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actor_user_id": {
+      "format": "uuid",
+      "title": "Actor User Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "customer_id": {
+      "pattern": "^DEMO-[A-Z0-9-]+$",
+      "title": "Customer Id",
+      "type": "string"
+    },
+    "customer_messages": {
+      "items": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "title": "Customer Messages",
+      "type": "array"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "input": {
+      "$ref": "#/$defs/CustomerMessage"
+    },
+    "interpreter_response_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Interpreter Response Id",
+      "type": "string"
+    },
+    "reply": {
+      "$ref": "#/$defs/CustomerReply"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "format": "uuid",
+      "title": "Tenant Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tenant_id",
+    "actor_user_id",
+    "customer_id",
+    "input",
+    "customer_messages",
+    "interpreter_response_id",
+    "reply",
+    "created_at",
+    "expires_at"
+  ],
+  "title": "CustomerMessageRecord",
+  "type": "object"
+}

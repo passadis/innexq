@@ -91,6 +91,10 @@ output "AZURE_AI_PROJECT_ID" {
 output "AZURE_AI_PROJECT_ENDPOINT" {
   value = local.api_env.INNEXQ_FOUNDRY_PROJECT_ENDPOINT
 }
+output "FOUNDRY_PROJECT_ENDPOINT" {
+  # Current azd agent commands resolve this name; retain the Azure alias above.
+  value = local.api_env.INNEXQ_FOUNDRY_PROJECT_ENDPOINT
+}
 output "AZURE_AI_PROJECT_PRINCIPAL_ID" {
   value = azapi_resource.project.output.identity.principalId
 }

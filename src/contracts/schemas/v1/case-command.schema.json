@@ -1,0 +1,51 @@
+{
+  "$id": "https://schemas.innexq.invalid/v1/case-command.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "enum": [
+        "acknowledge",
+        "add_note",
+        "close_without_release"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "case_id": {
+      "format": "uuid",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "command_id": {
+      "format": "uuid",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "decision_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Hash",
+      "type": "string"
+    },
+    "expected_revision": {
+      "minimum": 0,
+      "title": "Expected Revision",
+      "type": "integer"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Note",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "case_id",
+    "decision_hash",
+    "expected_revision",
+    "action"
+  ],
+  "title": "CaseCommand",
+  "type": "object"
+}

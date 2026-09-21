@@ -9,6 +9,17 @@ permissions:
   contents: read
 
 jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - run: npm ci --prefix src/web --ignore-scripts
+      - run: npm run verify --prefix src/web
   python:
     runs-on: ubuntu-latest
     steps:

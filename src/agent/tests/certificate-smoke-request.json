@@ -1,0 +1,9 @@
+{
+  "request_id": "9a84f81a-7a04-44d9-b7b4-727fb6516098",
+  "tenant_id": "35de4c50-7dcd-4871-8685-61789c017da2",
+  "customer_id": "DEMO-FAB",
+  "equipment_id": "DEMO-PT-001",
+  "prompt": "Please retrieve my existing certificate for DEMO-PT-001.",
+  "document_facts": ["LOCAL SMOKE FIXTURE ONLY - not live OCR or release evidence", "DEMO-PT-001-CERT page 1: Equipment ID = DEMO-PT-001"],
+  "equipment_facts": ["Equipment ID = DEMO-PT-001", "Customer ID = DEMO-FAB"]
+}

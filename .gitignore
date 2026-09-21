@@ -13,15 +13,18 @@ htmlcov/
 .terraform/
 *.tfstate
 *.tfstate.*
+*.tfplan
 crash.log
 
 # Azure Developer CLI environment state (may contain environment values)
 .azure/*/
-!.azure/deployment-plan.md
+/.azure/deployment-plan.md
 
 # JavaScript
 node_modules/
 dist/
+test-results/
+playwright-report/
 
 # Editors and operating systems
 .idea/
@@ -38,3 +41,9 @@ Thumbs.db
 *.pfx
 *.p12
 .test-artifacts/
+.publish/
+
+# Internal documentation and planning material: local review only
+/docs/
+/docs_blueprint/
+/AGENTS.md

@@ -1,0 +1,20 @@
+.ops-main { max-width: 1150px; }
+.ops-app button { border: 1px solid #cbd9df; border-radius: 6px; padding: 9px 14px; color: #193b4b; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; }
+.ops-app button:disabled { opacity: .55; cursor: not-allowed; }
+.ops-app .iq-panel { margin-top: 20px; }
+.ops-app .iq-panel h2 { font-size: 20px; }
+.ops-app .iq-panel h3 { font-size: 15px; }
+.ops-app .iq-panel p, .ops-app .iq-panel li { font-size: 13px; line-height: 1.8; }
+.ops-identity dd, .ops-app .iq-mono { overflow-wrap: anywhere; }
+.ops-hold { border-radius: 20px; padding: 5px 11px; background: #fff2d6; color: #7d591b; font-size: 11px; font-weight: 600; }
+.ops-summary { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ops-table-scroll { overflow-x: auto; }
+.ops-app table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+.ops-app th, .ops-app td { padding: 12px 10px; border-bottom: 1px solid #e0e8ed; }
+.ops-app th { color: #4d6577; font-size: 11px; }
+.ops-case-controls textarea { display: block; width: 100%; box-sizing: border-box; margin: 8px 0; padding: 12px; border: 1px solid #b7c6c9; border-radius: 8px; font: inherit; resize: vertical; }
+.ops-case-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.ops-review-history { padding-left: 22px; }
+.ops-review-history li { padding: 10px 0; border-bottom: 1px solid #e1e9e8; }
+.ops-review-history p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ops-review-history small { overflow-wrap: anywhere; }

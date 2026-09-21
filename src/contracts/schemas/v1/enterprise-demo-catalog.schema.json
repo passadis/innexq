@@ -1,0 +1,452 @@
+{
+  "$defs": {
+    "DemoContract": {
+      "additionalProperties": false,
+      "properties": {
+        "annual_price": {
+          "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2}$",
+          "title": "Annual Price",
+          "type": "string"
+        },
+        "contract_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Contract Id",
+          "type": "string"
+        },
+        "currency": {
+          "const": "EUR",
+          "default": "EUR",
+          "title": "Currency",
+          "type": "string"
+        },
+        "customer_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "document_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "expires_on": {
+          "format": "date",
+          "title": "Expires On",
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "tier": {
+          "enum": [
+            "Silver",
+            "Gold"
+          ],
+          "title": "Tier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_id",
+        "customer_id",
+        "tier",
+        "starts_on",
+        "expires_on",
+        "annual_price",
+        "document_id"
+      ],
+      "title": "DemoContract",
+      "type": "object"
+    },
+    "DemoCustomer": {
+      "additionalProperties": false,
+      "properties": {
+        "customer_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "preferred_language": {
+          "enum": [
+            "en-GB",
+            "sv-SE",
+            "el-GR"
+          ],
+          "title": "Preferred Language",
+          "type": "string"
+        }
+      },
+      "required": [
+        "customer_id",
+        "name",
+        "preferred_language"
+      ],
+      "title": "DemoCustomer",
+      "type": "object"
+    },
+    "DemoDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Contract Id",
+          "type": "string"
+        },
+        "customer_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "disclosure": {
+          "const": "SYNTHETIC DEMO - NOT VALID FOR REAL EQUIPMENT",
+          "default": "SYNTHETIC DEMO - NOT VALID FOR REAL EQUIPMENT",
+          "title": "Disclosure",
+          "type": "string"
+        },
+        "document_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "equipment_id": {
+          "anyOf": [
+            {
+              "pattern": "^DEMO-[A-Z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equipment Id"
+        },
+        "filename": {
+          "pattern": "^DEMO-[A-Z0-9-]+\\.pdf$",
+          "title": "Filename",
+          "type": "string"
+        },
+        "issued_on": {
+          "format": "date",
+          "title": "Issued On",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "contract",
+            "service_report",
+            "certificate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "recorded_serial_number": {
+          "anyOf": [
+            {
+              "pattern": "^DEMO-[A-Z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recorded Serial Number"
+        },
+        "valid_until": {
+          "format": "date",
+          "title": "Valid Until",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "customer_id",
+        "contract_id",
+        "kind",
+        "issued_on",
+        "valid_until",
+        "filename"
+      ],
+      "title": "DemoDocument",
+      "type": "object"
+    },
+    "DemoEquipment": {
+      "additionalProperties": false,
+      "properties": {
+        "certificate_document_id": {
+          "anyOf": [
+            {
+              "pattern": "^DEMO-[A-Z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Certificate Document Id"
+        },
+        "contract_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Contract Id",
+          "type": "string"
+        },
+        "customer_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "equipment_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "serial_number": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Serial Number",
+          "type": "string"
+        },
+        "service_document_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Service Document Id",
+          "type": "string"
+        },
+        "service_valid_until": {
+          "format": "date",
+          "title": "Service Valid Until",
+          "type": "string"
+        }
+      },
+      "required": [
+        "equipment_id",
+        "customer_id",
+        "contract_id",
+        "label",
+        "serial_number",
+        "model",
+        "service_valid_until",
+        "service_document_id",
+        "certificate_document_id"
+      ],
+      "title": "DemoEquipment",
+      "type": "object"
+    },
+    "DemoRequestPreset": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_id": {
+          "anyOf": [
+            {
+              "pattern": "^DEMO-[A-Z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contract Id"
+        },
+        "customer_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "equipment_id": {
+          "anyOf": [
+            {
+              "pattern": "^DEMO-[A-Z0-9-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equipment Id"
+        },
+        "preset_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Preset Id",
+          "type": "string"
+        },
+        "request_kind": {
+          "enum": [
+            "certificate_request",
+            "tier_upgrade_request"
+          ],
+          "title": "Request Kind",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "preset_id",
+        "customer_id",
+        "request_kind",
+        "text"
+      ],
+      "title": "DemoRequestPreset",
+      "type": "object"
+    },
+    "DemoSalesEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "booked_on": {
+          "format": "date",
+          "title": "Booked On",
+          "type": "string"
+        },
+        "currency": {
+          "const": "EUR",
+          "default": "EUR",
+          "title": "Currency",
+          "type": "string"
+        },
+        "customer_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "entry_id": {
+          "pattern": "^DEMO-[A-Z0-9-]+$",
+          "title": "Entry Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "invoice",
+            "credit_note"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "net_amount": {
+          "pattern": "^(0|[1-9][0-9]*)\\.[0-9]{2}$",
+          "title": "Net Amount",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry_id",
+        "customer_id",
+        "booked_on",
+        "kind",
+        "net_amount"
+      ],
+      "title": "DemoSalesEntry",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.innexq.invalid/v1/enterprise-demo-catalog.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "as_of": {
+      "format": "date",
+      "title": "As Of",
+      "type": "string"
+    },
+    "contracts": {
+      "items": {
+        "$ref": "#/$defs/DemoContract"
+      },
+      "maxItems": 6,
+      "minItems": 1,
+      "title": "Contracts",
+      "type": "array"
+    },
+    "customers": {
+      "items": {
+        "$ref": "#/$defs/DemoCustomer"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Customers",
+      "type": "array"
+    },
+    "dataset_id": {
+      "const": "innexq-equipment-demo-v1",
+      "default": "innexq-equipment-demo-v1",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/DemoDocument"
+      },
+      "minItems": 1,
+      "title": "Documents",
+      "type": "array"
+    },
+    "equipment": {
+      "items": {
+        "$ref": "#/$defs/DemoEquipment"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Equipment",
+      "type": "array"
+    },
+    "presets": {
+      "items": {
+        "$ref": "#/$defs/DemoRequestPreset"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Presets",
+      "type": "array"
+    },
+    "sales": {
+      "items": {
+        "$ref": "#/$defs/DemoSalesEntry"
+      },
+      "title": "Sales",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic": {
+      "const": true,
+      "default": true,
+      "title": "Synthetic",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "as_of",
+    "customers",
+    "contracts",
+    "equipment",
+    "documents",
+    "sales",
+    "presets"
+  ],
+  "title": "EnterpriseDemoCatalog",
+  "type": "object"
+}

@@ -39,10 +39,34 @@ class EntraAuth:
 
     def user(self, request: Request) -> tuple[str, str]:
         claims = self.claims(request)
-        if "user_impersonation" not in claims.get("scp", "").split():
+        scope_claim = claims.get("scp", "")
+        if claims.get("idtyp") == "app" or not isinstance(scope_claim, str):
             raise HTTPException(403, "delegated user scope required")
-        if claims["oid"] != self.settings.approver_user_id:
+        scopes = set(scope_claim.split())
+        allowed = {"user_impersonation"}
+        if request.method == "GET":
+            allowed.add("Runs.Read")
+        if not scopes.intersection(allowed):
+            raise HTTPException(403, "delegated user scope required")
+        manager_read = (
+            request.method == "GET"
+            and bool(self.settings.manager_user_id)
+            and claims["oid"] == self.settings.manager_user_id
+        )
+        if claims["oid"] != self.settings.approver_user_id and not manager_read:
             raise HTTPException(403, "user is not assigned to the Phase 1 workflow")
+        return claims["tid"], claims["oid"]
+
+    def case_operator(self, request: Request) -> tuple[str, str]:
+        claims = self.claims(request)
+        scopes = claims.get("scp", "")
+        if (
+            claims.get("idtyp") == "app"
+            or not isinstance(scopes, str)
+            or "Cases.Manage" not in scopes.split()
+            or claims["oid"] != self.settings.approver_user_id
+        ):
+            raise HTTPException(403, "assigned Operations with Cases.Manage required")
         return claims["tid"], claims["oid"]
 
     def agent(self, request: Request) -> None:
@@ -53,3 +77,16 @@ class EntraAuth:
             or "Pricing.Read" not in claims.get("roles", [])
         ):
             raise HTTPException(403, "read-only agent identity required")
+
+    def customer(self, request: Request) -> tuple[str, str]:
+        claims = self.claims(request)
+        scopes = claims.get("scp", "")
+        if (
+            claims.get("idtyp") == "app"
+            or not isinstance(scopes, str)
+            or "Certificates.Request" not in set(scopes.split())
+        ):
+            raise HTTPException(403, "customer delegated scope required")
+        if claims["oid"] not in self.settings.customer_bindings:
+            raise HTTPException(403, "customer is not assigned")
+        return claims["tid"], claims["oid"]

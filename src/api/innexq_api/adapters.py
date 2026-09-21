@@ -1,6 +1,7 @@
 """Azure transport adapters. No workflow decisions belong in this module."""
 
 import json
+import logging
 from typing import Any
 from urllib.parse import quote
 
@@ -9,6 +10,7 @@ from azure.identity import AzureCliCredential, ManagedIdentityCredential
 from innexq_contracts.events import AgentProposal
 from innexq_contracts.models import Action, ActionType, Run
 
+from innexq_api.assembly_diagnostics import opaque_id, reason_code, response_status
 from innexq_api.config import Settings
 from innexq_api.controller import Denied, digest
 
@@ -27,13 +29,32 @@ class FoundryAgent:
 
     async def propose(self, run: Run) -> AgentProposal:
         from azure.ai.projects import AIProjectClient
+        from azure.ai.projects.models import VersionRefIndicator
         from starlette.concurrency import run_in_threadpool
 
         def invoke() -> AgentProposal:
             with AIProjectClient(
                 endpoint=self.settings.foundry_project_endpoint, credential=self.credential
             ) as project:
-                with project.get_openai_client() as client:
+                # Hosted agents use their dedicated endpoint. Pin a fresh session to
+                # the configured immutable version; never reuse another Run's history.
+                session = project.agents.create_session(
+                    agent_name=self.settings.foundry_agent_name,
+                    version_indicator=VersionRefIndicator(
+                        agent_version=self.settings.foundry_agent_version
+                    ),
+                )
+                diagnostic_ids = {
+                    "run_id": str(run.run_id),
+                    "correlation_id": str(run.correlation_id),
+                    "agent_session_id": opaque_id(session.agent_session_id),
+                }
+                logging.getLogger("innexq.audit").info(
+                    "foundry_session_created", extra=diagnostic_ids
+                )
+                with project.get_openai_client(
+                    agent_name=self.settings.foundry_agent_name, max_retries=0
+                ) as client:
                     response = client.responses.create(
                         input=json.dumps(
                             {
@@ -42,14 +63,19 @@ class FoundryAgent:
                                 "contract_id": run.contract_id,
                             }
                         ),
-                        extra_body={
-                            "agent": {
-                                "type": "agent_reference",
-                                "name": self.settings.foundry_agent_name,
-                                "version": self.settings.foundry_agent_version,
-                            }
+                        extra_body={"agent_session_id": session.agent_session_id},
+                    )
+                    logging.getLogger("innexq.audit").info(
+                        "foundry_response_received",
+                        extra={
+                            **diagnostic_ids,
+                            "response_id": opaque_id(response.id),
+                            "response_status": response_status(response.status),
+                            "reason_code": reason_code(getattr(response.error, "message", None)),
                         },
                     )
+                    if response.status != "completed":
+                        raise Denied("Hosted Agent response did not complete")
                     return AgentProposal.model_validate_json(response.output_text)
 
         return await run_in_threadpool(invoke)
@@ -101,8 +127,12 @@ class GraphExecutor:
                 response.raise_for_status()
                 return str(response.json()["id"])
             if action.action_type == ActionType.GRAPH_SEND_MAIL:
-                if set(p) != {"sender", "recipient", "subject", "content"}:
+                base = {"sender", "recipient", "subject", "content"}
+                if set(p) not in (base, base | {"content_type"}):
                     raise Denied("unexpected email parameters")
+                content_type = p.get("content_type", "Text")
+                if content_type not in ("Text", "HTML"):
+                    raise Denied("unsupported email content type")
                 if p["sender"] != self.settings.sender_mailbox or (
                     p["recipient"] != self.settings.test_recipient
                 ):
@@ -112,7 +142,7 @@ class GraphExecutor:
                     json={
                         "message": {
                             "subject": p["subject"],
-                            "body": {"contentType": "Text", "content": content},
+                            "body": {"contentType": content_type, "content": content},
                             "toRecipients": [{"emailAddress": {"address": p["recipient"]}}],
                             "internetMessageHeaders": [
                                 {"name": "x-innexq-action-id", "value": str(action.action_id)}

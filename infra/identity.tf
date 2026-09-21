@@ -1,10 +1,41 @@
 # The API registration defines a token audience; no credential is created.
 resource "azuread_application" "api" {
+  lifecycle {
+    # The identifier-uri child resource owns this self-referencing value.
+    ignore_changes = [identifier_uris]
+  }
   display_name     = "${var.environment_name}-api"
   sign_in_audience = "AzureADMyOrg"
   owners           = [data.azurerm_client_config.current.object_id]
   api {
     requested_access_token_version = 2
+    oauth2_permission_scope {
+      id                         = "03c5a9e3-0c7c-4baa-9d4b-4f26ff22e517"
+      enabled                    = true
+      type                       = "Admin"
+      value                      = "Cases.Manage"
+      admin_consent_display_name = "Manage assigned InnexQ held cases"
+      admin_consent_description  = "Assigned Operations may acknowledge, add internal notes and close without release. No PDF release, renewal approval, customer email or Graph authority."
+    }
+    dynamic "oauth2_permission_scope" {
+      for_each = var.certificate_infrastructure_enabled ? [1] : []
+      content {
+        id                         = "a85084b7-1e53-4bba-aef6-237da49e681b"
+        enabled                    = true
+        type                       = "Admin"
+        value                      = "Certificates.Request"
+        admin_consent_display_name = "Request your existing InnexQ certificates"
+        admin_consent_description  = "Assigned customers may request and download only their eligible existing PDFs. No employee, Graph or commercial authority."
+      }
+    }
+    oauth2_permission_scope {
+      id                         = "2a653db0-d8e4-433f-bc96-cec3f2c1f395"
+      enabled                    = true
+      type                       = "Admin"
+      value                      = "Runs.Read"
+      admin_consent_display_name = "Read your InnexQ Runs"
+      admin_consent_description  = "Inspect only authorized Run evidence, briefs, events and receipts. Cannot trigger workflows or approvals."
+    }
     oauth2_permission_scope {
       id                         = "ae5979f3-847e-4b24-aeee-03783e296d5d"
       enabled                    = true
@@ -21,6 +52,17 @@ resource "azuread_application" "api" {
     display_name         = "Pricing Read"
     enabled              = true
     value                = "Pricing.Read"
+  }
+  dynamic "app_role" {
+    for_each = var.evidence_identity_enabled ? [1] : []
+    content {
+      id                   = "70f53091-8400-4140-85ac-a4779e0ad4bc"
+      allowed_member_types = ["Application"]
+      description          = "Read only controller-scoped evidence through MCP. No workflow, release, Graph or execution authority."
+      display_name         = "Evidence Read"
+      enabled              = true
+      value                = "Evidence.Read"
+    }
   }
 }
 
@@ -76,10 +118,11 @@ resource "azurerm_role_assignment" "api_artifacts" {
 }
 
 resource "azurerm_role_assignment" "api_foundry" {
-  scope                = azapi_resource.project.id
-  role_definition_name = "Azure AI User"
-  principal_id         = azurerm_user_assigned_identity.api.principal_id
-  principal_type       = "ServicePrincipal"
+  scope = azapi_resource.project.id
+  # Foundry User (formerly Azure AI User): stable ID avoids display-name rollout drift.
+  role_definition_id = "/subscriptions/${var.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/53ca6127-db72-4b80-b1b0-d745d6d5456d"
+  principal_id       = azurerm_user_assigned_identity.api.principal_id
+  principal_type     = "ServicePrincipal"
 }
 
 resource "azurerm_role_assignment" "api_telemetry" {
@@ -90,10 +133,10 @@ resource "azurerm_role_assignment" "api_telemetry" {
 }
 
 resource "azurerm_role_assignment" "project_model" {
-  scope                = azurerm_cognitive_account.main.id
-  role_definition_name = "Azure AI User"
-  principal_id         = azapi_resource.project.output.identity.principalId
-  principal_type       = "ServicePrincipal"
+  scope              = azurerm_cognitive_account.main.id
+  role_definition_id = "/subscriptions/${var.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/53ca6127-db72-4b80-b1b0-d745d6d5456d"
+  principal_id       = azapi_resource.project.output.identity.principalId
+  principal_type     = "ServicePrincipal"
 }
 
 resource "azurerm_role_assignment" "project_acr" {
@@ -118,9 +161,9 @@ resource "azurerm_role_assignment" "seed_search" {
 }
 
 resource "azurerm_role_assignment" "deployer_foundry" {
-  scope                = azurerm_cognitive_account.main.id
-  role_definition_name = "Azure AI User"
-  principal_id         = data.azurerm_client_config.current.object_id
+  scope              = azurerm_cognitive_account.main.id
+  role_definition_id = "/subscriptions/${var.subscription_id}/providers/Microsoft.Authorization/roleDefinitions/53ca6127-db72-4b80-b1b0-d745d6d5456d"
+  principal_id       = data.azurerm_client_config.current.object_id
 }
 
 resource "azurerm_role_assignment" "agent_search" {

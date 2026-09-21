@@ -40,8 +40,8 @@ $site = Invoke-MgGraphRequest -Method GET -Uri 'https://graph.microsoft.com/v1.0
 if ($site.webUrl.TrimEnd('/') -ne $siteUrl) { throw 'Resolved site does not match the approved URL.' }
 $siteId = [Uri]::EscapeDataString($site.id)
 $drives = @(Get-GraphCollection "https://graph.microsoft.com/v1.0/sites/$siteId/drives" |
-    Where-Object { $_.name -ceq 'InnexQ' -and $_.driveType -eq 'documentLibrary' })
-if ($drives.Count -ne 1) { throw 'Expected exactly one InnexQ document library; nothing was created.' }
+    Where-Object { $_.name -ceq 'InnexQDocs' -and $_.driveType -eq 'documentLibrary' })
+if ($drives.Count -ne 1) { throw 'Expected exactly one InnexQDocs document library; nothing was created.' }
 $driveId = [Uri]::EscapeDataString($drives[0].id)
 $folder = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/drives/$driveId/root:/Output"
 if (-not $folder.Contains('folder') -or $folder.name -cne 'Output' -or
@@ -58,7 +58,7 @@ if ($GrantSite) {
     if ($existing.Count -gt 1) { throw 'Multiple grants found; review manually without automatic modification.' }
     if ($existing.Count -eq 1) {
         if (@($existing[0].roles).Count -ne 1 -or $existing[0].roles[0] -ne 'write') {
-            throw 'Existing site grant differs from the approved write-only role; review manually.'
+            throw 'Existing site grant differs from the approved read/write role; review manually.'
         }
         $permissionId = $existing[0].id
     } elseif ($PSCmdlet.ShouldProcess("$siteUrl -> $ExecutorClientId", 'Grant Sites.Selected write access on this site only')) {

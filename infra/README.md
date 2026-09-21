@@ -2,7 +2,8 @@
 
 This directory is the sole infrastructure source for the approved plan in
 `.azure/deployment-plan.md`. It uses AzureRM for supported resources, AzAPI for
-the Foundry project and ARM-managed Blob containers, and AzureAD for the API token
+the Foundry project, ARM-managed Blob containers and the narrow Free semantic setting,
+and AzureAD for the API token
 audience and narrowly scoped application permissions. No app password or shared
 key is configured.
 
@@ -21,7 +22,11 @@ The API's Graph IDs and actual Hosted Agent principal ID are empty initially.
 After deployment, the bootstrap procedure verifies the existing site/library/
 folder, sets `TF_VAR_graph_site_id`, `TF_VAR_graph_drive_id`,
 `TF_VAR_graph_folder_id`, and `TF_VAR_agent_principal_id`, then reconciles this
-same configuration. Missing targets/identities must fail application readiness.
+same configuration. The three SharePoint values are explicitly mapped through
+`main.tfvars.json`: saving TF_VAR values only in azd's environment was insufficient
+in the observed CLI workflow. Confirm every intended value appears in the preview;
+the agent input still needs equivalent resolution when its identity is available.
+Missing targets/identities must fail application readiness.
 The agent receives only Search read and `Pricing.Read` access. It must never use
 the API identity, which holds the separately guarded write capabilities.
 
@@ -46,7 +51,7 @@ Schema references:
 
 No synthetic source documents need to be uploaded to SharePoint for this slice:
 `corpus/blob/phase1.json` is ingested into the new Blob/Search resources. SharePoint
-is only the approved output destination. Ensure the existing InnexQ library has
+is only the approved output destination. Ensure the existing InnexQDocs library has
 an existing Output folder. No automatic folder creation or alternate library is
 allowed when lookup fails.
 
@@ -117,7 +122,9 @@ Install the generated Teams custom app in the approved Team/channel as the owner
 The application must store the authenticated channel conversation reference before
 issuing an approval. Never fabricate a conversation reference from a URL.
 
-## Read-only readiness evidence, 2026-09-08 (Athens)
+## Historical pre-provisioning checks, 2026-09-08 (Athens)
+
+The following records precede deployment; see the current checkpoint below.
 
 - Azure CLI context matches AzureDev and the approved tenant/subscription.
 - `az group exists -n rg-innexq-dev-swc` returned `false`; no new project resources
@@ -142,3 +149,108 @@ issuing an approval. Never fabricate a conversation reference from a URL.
 References: [site grant API](https://learn.microsoft.com/en-us/graph/api/site-post-permissions?view=graph-rest-1.0),
 [Exchange application RBAC](https://learn.microsoft.com/en-us/exchange/permissions-exo/application-rbac),
 [Graph mail acceptance](https://learn.microsoft.com/en-us/graph/api/user-sendmail?view=graph-rest-1.0).
+
+## Current deployment checkpoint, 2026-09-08
+
+Infrastructure, API and synthetic corpus are deployed in `rg-innexq-dev-swc`.
+API liveness/readiness have returned 200; the agent and M365 bindings are complete.
+The three-consecutive-Run gate passed: three fresh human-approved Runs reached
+EXECUTED with 15 correlated events and two completed receipts each. The owner
+confirmed all three Teams interactions completed without client errors.
+Live retrieval returned all six evidence categories. The detailed
+proof and outstanding checks are in `../.azure/deployment-plan.md`.
+
+The approved early read-only Control Room is also deployed in the existing
+Container Apps environment. `infra/web.tf` owns its separate image-pull identity,
+single-tenant SPA registration and Runs.Read preauthorization. API CORS is exact
+and GET-only. Live endpoints and PKCE popup pass; owner sign-in acceptance remains.
+
+The owner installed `.azure/innexq-teams-phase1.zip` in the approved Team and
+confirmed the bot reply and corrected approval confirmation in Teams web. A bot
+mention registers the authenticated channel reference; it does not approve a Run.
+
+Hosted Agent version 2 serializes retrieval within each proposal. `infra/api.tf`
+explicitly pins the API's target version; update that release pin only after the
+corresponding immutable agent version is deployed and verified. On a fresh Foundry
+project, reconcile the actual deployed version rather than assuming version 2
+already exists. Runtime must never silently select the latest agent version.
+
+For the bootstrap scripts above, the deployed executor client ID is
+`4e0966f1-2cdc-4574-abd5-db7b7a67918f` and principal ID is
+`a78225b8-00e9-4dd7-8848-4d1ef4b62325`. These are public identifiers, not secrets.
+Do not share tokens, passwords or Terraform state.
+
+SharePoint binding and Exchange bootstrap completed on 2026-09-08. Executor
+managed-identity Graph v1.0 GETs returned 200 for the exact site/library/folder.
+The API's three target settings were applied without an image change. The owner
+confirmed the bot reply after installation. Exchange now has one executor
+assignment, `InnexQ-Phase1-MailSend`, scoped to the immutable directory ID of
+`superuser@alfacloud.gr`; its positive authorization test passes. The read-only
+bootstrap rerun also passes. No file or mail was sent by these checks.
+
+Outstanding: owner-approved negative isolation tests and real browser sign-in for
+the early Control Room increment. The owner confirmed one delivered email and SharePoint
+file; a Graph acceptance receipt alone is not proof of recipient delivery. Temporary
+administrative Graph Explorer consent cleanup remains an owner-coordinated step;
+disconnecting a session is not consent revocation.
+
+## E1 certificate rollout configuration
+
+`infra/certificates.tf` adds the separate customer SPA/host, private PDF container,
+Document Intelligence and scoped reader identity under ADR-013. Set all three
+azd values explicitly: `TF_VAR_certificate_infrastructure_enabled`,
+`TF_VAR_certificate_runtime_enabled`, and `TF_VAR_certificate_agent_version`.
+`main.tfvars.json` maps these values; merely putting TF_VAR names in azd's local
+environment does not export them to Terraform automatically in this project.
+
+For a new E1 rollout, infrastructure is true and runtime false with an empty
+version. Preview/apply the resource delta, verify roles, publish the archived PDFs,
+deploy only `innexq-certificate-team`, and validate real extraction/investigation.
+Only then pin the actual immutable agent version and enable runtime. Keep these
+values persisted for later provisions; clearing the infrastructure flag would
+plan removal of E1 resources and requires a separate destructive-change review.
+Never deploy all services or change the accepted renewal agent version2 implicitly.
+
+Current E1 deployment evidence and live acceptance status are recorded in the
+local deployment plan. Customer release and Teams receipt must be tested
+with real customer sign-in; infrastructure success is not acceptance.
+
+## ADR-017 evidence candidate configuration
+
+The existing API can host `/api/evidence/mcp`; broker staging is independent of
+customer routing. Authority boundaries and live acceptance requirements are
+recorded in the internal design decisions.
+
+- `TF_VAR_evidence_identity_enabled`: enables the Application-only `Evidence.Read`
+  role and its single approved certificate-agent assignment, without an API revision.
+- `TF_VAR_evidence_agent_principal_id`: only the verified owner-approved principal.
+- `TF_VAR_evidence_broker_enabled`: mounts the authenticated read-only MCP surface;
+  may be true while customer routing remains false and certificate v3 stays pinned.
+- `TF_VAR_evidence_runtime_enabled`: defaults false; enabling requires certificate
+  runtime, the broker gate and a validated agent version other than accepted v3.
+- `INNEXQ_CERTIFICATE_EVIDENCE_TOOLS_ENABLED`: candidate agent-service opt-in;
+  this does not enable the API's customer evidence path.
+- `INNEXQ_CERTIFICATE_TOOLBOX_ENDPOINT`: immutable version-pinned endpoint in the
+  existing project, mapped to the agent's `TOOLBOX_ENDPOINT`.
+
+The four evidence Terraform values are explicitly mapped through
+`main.tfvars.json`; do not rely on azd forwarding stored `TF_VAR_*` values into
+the Terraform process. Keep the approved grant enabled during subsequent previews.
+
+`evidence-toolbox.json` is the approved **innexq-dev-specific** four-tool manifest,
+not a cross-environment template. Connection `innexq-evidence` uses the existing
+API audience and AgenticIdentityToken; toolbox `innexq-evidence-tools` is pinned
+to version 1. Never substitute the shared project identity or add direct data roles.
+The connection/toolbox and narrow role were created on 2026-09-19. The API broker
+and immutable candidate agent are deployed. Following three fresh evidence-only
+passes, the owner approved a supervised v6 customer pilot: customer evidence
+routing is enabled and v6 is pinned. V3 remains the rollback version. Cloud
+metadata, dummy-scope rejection and evidence probes do not establish customer
+release/hold/Operations acceptance. On 2026-09-20 the owner separately confirmed
+those customer checks succeeded; live records corroborate PT-001 release and
+download preparation, PT-002 service-status hold and PT-003 missing-evidence hold.
+Both held requests have Operations cases. Closure updates were not separately
+retested in this pilot. See the deployment plan for request IDs and evidence limits.
+The operator-only `innexq_api.evidence_probe` requires broker-only staging and
+explicit execution. It can record evidence receipts but cannot create a workflow,
+authorize/download a certificate, create an Operations case or send notifications.

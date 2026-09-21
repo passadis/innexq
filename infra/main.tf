@@ -125,7 +125,21 @@ resource "azurerm_search_service" "main" {
   local_authentication_enabled = false
   # Free supports incoming Entra RBAC, not an outbound service managed identity.
   # Extractive GA knowledge-base retrieval makes no outbound model calls.
+  lifecycle {
+    # AzureRM 4.81 rejects Free-tier semantic settings; the ARM patch below owns this.
+    ignore_changes = [semantic_search_sku]
+  }
   tags = local.tags
+}
+
+# Narrow PATCH: no resource replacement, key auth, SKU change or paid billing consent.
+# https://learn.microsoft.com/azure/search/semantic-how-to-enable-disable
+resource "azapi_update_resource" "search_free_semantic" {
+  type        = "Microsoft.Search/searchServices@2026-03-01-preview"
+  resource_id = azurerm_search_service.main.id
+  body = {
+    properties = { semanticSearch = "free" }
+  }
 }
 
 resource "azurerm_cognitive_account" "main" {
@@ -145,10 +159,12 @@ resource "azurerm_cognitive_account" "main" {
 
 # Verified ARM schema: learn.microsoft.com/azure/templates/microsoft.cognitiveservices/2025-06-01/accounts/projects
 resource "azapi_resource" "project" {
-  type      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
-  name      = "innexq-project"
-  parent_id = azurerm_cognitive_account.main.id
-  location  = var.location
+  # Foundry rejects concurrent child writes while a model deployment is in progress.
+  depends_on = [azurerm_cognitive_deployment.reasoning]
+  type       = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
+  name       = "innexq-project"
+  parent_id  = azurerm_cognitive_account.main.id
+  location   = var.location
   identity {
     type = "SystemAssigned"
   }

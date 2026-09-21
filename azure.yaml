@@ -36,7 +36,43 @@ services:
         docker:
             path: ./src/api/Dockerfile
             context: .
+    innexq-certificate-team:
+        project: ./src/agent
+        host: azure.ai.agent
+        language: docker
+        docker:
+            path: ./Dockerfile
+            context: .
             remoteBuild: true
+        env:
+            AZURE_AI_MODEL_DEPLOYMENT_NAME: ${AZURE_AI_MODEL_DEPLOYMENT_NAME}
+            INNEXQ_AGENT_PACK: certificate_fulfilment
+            INNEXQ_EVIDENCE_TOOLS_ENABLED: ${INNEXQ_CERTIFICATE_EVIDENCE_TOOLS_ENABLED}
+            TOOLBOX_ENDPOINT: ${INNEXQ_CERTIFICATE_TOOLBOX_ENDPOINT}
+        container:
+            resources:
+                cpu: "1"
+                memory: 2Gi
+        description: Scoped certificate coordinator with Document Analyst and Equipment & Service specialists; no writes or authorization.
+        kind: hosted
+        name: innexq-certificate-team
+        protocols:
+            - protocol: responses
+              version: 2.0.0
+    innexq-customer:
+        project: ./src/web
+        host: containerapp
+        language: docker
+        docker:
+            path: ./Dockerfile
+            context: ../..
+    innexq-web:
+        project: ./src/web
+        host: containerapp
+        language: docker
+        docker:
+            path: ./Dockerfile
+            context: ../..
 infra:
     provider: terraform
     path: ./infra

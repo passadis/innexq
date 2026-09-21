@@ -1,5 +1,6 @@
 """Offline safety checks; no Azure calls or model substitutions in live operation."""
 
+import asyncio
 import json
 import os
 import unittest
@@ -72,6 +73,19 @@ class SafetyTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "tool evidence"):
             await self.guard.process(self.context, next_call)
 
+    async def test_default_none_options_reach_tools_and_retain_guard(self):
+        self.context.options = None
+
+        async def next_call():
+            self.assertIs(self.context.options["response_format"], Proposal)
+            self.assertIs(self.context.options["store"], False)
+            self.context.result = AgentResponse(
+                messages=[Message(role="assistant", contents=[PROPOSAL.model_dump_json()])]
+            )
+
+        with self.assertRaisesRegex(ValueError, "tool evidence"):
+            await self.guard.process(self.context, next_call)
+
     async def test_bound_tools_and_provenance(self):
         client = AsyncMock()
         client.__aenter__.return_value = client
@@ -108,6 +122,85 @@ class SafetyTests(unittest.IsolatedAsyncioTestCase):
             with patch("main.httpx.AsyncClient", return_value=client):
                 with self.assertRaisesRegex(ValueError, "does not match"):
                     await self.guard.process(self.context, next_call)
+
+    async def test_parallel_model_queries_are_serialized_without_retries(self):
+        active = 0
+        peak = 0
+        calls = []
+
+        async def search(*args):
+            nonlocal active, peak
+            active += 1
+            peak = max(peak, active)
+            calls.append(args[-1])
+            await asyncio.sleep(0)
+            active -= 1
+            return CITATIONS
+
+        client = AsyncMock()
+        client.__aenter__.return_value = client
+        client.post.return_value = SimpleNamespace(status_code=200, json=lambda: {})
+
+        async def next_call():
+            await asyncio.gather(*(self.context.tools[0](str(i)) for i in range(6)))
+            await self.context.tools[1]()
+            self.context.result = AgentResponse(
+                messages=[Message(role="assistant", contents=[PROPOSAL.model_dump_json()])]
+            )
+
+        with patch("main.retrieve", side_effect=search):
+            with patch("main.httpx.AsyncClient", return_value=client):
+                await self.guard.process(self.context, next_call)
+        self.assertEqual(peak, 1)
+        self.assertEqual(calls, [str(i) for i in range(6)])
+        self.assertEqual(client.post.await_count, 1)
+
+    async def test_serialized_empty_evidence_still_blocks_entire_proposal(self):
+        calls = []
+
+        async def search(*args):
+            calls.append(args[-1])
+            await asyncio.sleep(0)
+            if args[-1] == "empty":
+                return parse_references({"references": []})
+            return CITATIONS
+
+        client = AsyncMock()
+        client.__aenter__.return_value = client
+        client.post.return_value = SimpleNamespace(status_code=200, json=lambda: {})
+
+        async def next_call():
+            results = await asyncio.gather(
+                self.context.tools[0]("empty"),
+                self.context.tools[0]("complete"),
+                return_exceptions=True,
+            )
+            self.assertIsInstance(results[0], ValueError)
+            await self.context.tools[1]()
+            self.context.result = AgentResponse(
+                messages=[Message(role="assistant", contents=[PROPOSAL.model_dump_json()])]
+            )
+
+        with patch("main.retrieve", side_effect=search):
+            with patch("main.httpx.AsyncClient", return_value=client):
+                with self.assertRaisesRegex(ValueError, "tool evidence"):
+                    await self.guard.process(self.context, next_call)
+        self.assertEqual(calls, ["empty", "complete"])
+
+    async def test_serialized_queries_preserve_eight_call_limit(self):
+        async def next_call():
+            results = await asyncio.gather(
+                *(self.context.tools[0](str(i)) for i in range(9)), return_exceptions=True
+            )
+            self.assertIsInstance(results[8], ValueError)
+            self.context.result = AgentResponse(
+                messages=[Message(role="assistant", contents=[PROPOSAL.model_dump_json()])]
+            )
+
+        with patch("main.retrieve", AsyncMock(return_value=CITATIONS)) as search:
+            with self.assertRaisesRegex(ValueError, "tool evidence"):
+                await self.guard.process(self.context, next_call)
+        self.assertEqual(search.await_count, 8)
 
     async def test_stream_emits_nothing_before_guard_passes(self):
         async def updates():
