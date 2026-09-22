@@ -5,12 +5,14 @@ from uuid import UUID
 
 from innexq_contracts.coverage_renewal import (
     CoverageRenewalRecord,
+    CoverageRenewalState,
     CoverageSourceFact,
     CoverageToolReceipt,
 )
 from innexq_contracts.customer_status import CustomerCoverageProgress
 
 from innexq_api.coverage_controller import CoverageController, public_progress
+from innexq_api.coverage_executor import ArtifactKind, CoverageExecutor
 from innexq_api.store import Conflict
 
 PROGRESS_MESSAGES: dict[str, str] = {
@@ -45,8 +47,13 @@ class CoverageInvestigator(Protocol):
 class CoverageCustomerRuntime:
     """Runs the deterministic renewal pipeline; the controller owns every transition."""
 
-    def __init__(self, controller: CoverageController, investigator: CoverageInvestigator) -> None:
-        self.controller, self.investigator = controller, investigator
+    def __init__(
+        self,
+        controller: CoverageController,
+        investigator: CoverageInvestigator,
+        executor: CoverageExecutor | None = None,
+    ) -> None:
+        self.controller, self.investigator, self.executor = controller, investigator, executor
 
     def outcome(
         self, customer_id: str, equipment_id: str
@@ -82,3 +89,14 @@ class CoverageCustomerRuntime:
             message=PROGRESS_MESSAGES[progress],
             updated_at=record.updated_at,
         ).model_dump(mode="json")
+
+    def download(
+        self, customer_id: str, request_id: UUID, kind: ArtifactKind = "certificate"
+    ) -> bytes:
+        record, _ = self.controller.store.get(request_id)
+        if record.customer_id != customer_id or record.state != CoverageRenewalState.COMPLETED:
+            # Same public response as an unknown identifier; never confirm existence.
+            raise KeyError(str(request_id))
+        if self.executor is None:
+            raise KeyError(str(request_id))
+        return self.executor.download(request_id, kind)

@@ -76,6 +76,7 @@ def create_app(
         credential = None
         reader_credential = None
         notification_task = None
+        coverage_task = None
         evidence_stack = AsyncExitStack()
         try:
             if application.state.controller is None and config.cosmos_endpoint:
@@ -129,6 +130,50 @@ def create_app(
                         client_id=config.certificate_reader_client_id
                     )
                     certificate_store = CosmosCertificateStore(store.container)
+                    coverage_customer = None
+                    if config.renewal_enabled:
+                        from innexq_api.adapters import CoverageBlobStorage
+                        from innexq_api.coverage_controller import CoverageController
+                        from innexq_api.coverage_customer import CoverageCustomerRuntime
+                        from innexq_api.coverage_executor import CoverageExecutor
+                        from innexq_api.coverage_runner import CoverageExecutionRunner
+                        from innexq_api.coverage_sources import (
+                            FixtureCoverageInvestigator,
+                            FixtureCoverageSourceReader,
+                        )
+                        from innexq_api.coverage_store import CosmosCoverageStore
+
+                        coverage_container = store.client.get_database_client(
+                            config.cosmos_database
+                        ).get_container_client(config.renewal_coverage_container)
+                        coverage_store = CosmosCoverageStore(coverage_container)
+                        coverage_reader = FixtureCoverageSourceReader(
+                            config.renewal_scenarios_path, config.renewal_policy_path
+                        )
+                        coverage_controller = CoverageController(
+                            coverage_store,
+                            coverage_reader,
+                            operations_object_id=config.renewal_operations_object_id,
+                            manager_object_id=config.renewal_manager_object_id,
+                        )
+                        coverage_executor = CoverageExecutor(
+                            coverage_store,
+                            CoverageBlobStorage(config, credential),
+                            coverage_reader,
+                        )
+                        application.state.coverage_review = CoverageReviewService(
+                            coverage_controller
+                        )
+                        coverage_customer = CoverageCustomerRuntime(
+                            coverage_controller,
+                            FixtureCoverageInvestigator(coverage_reader),
+                            coverage_executor,
+                        )
+                        coverage_task = asyncio.create_task(
+                            CoverageExecutionRunner(
+                                coverage_store, coverage_controller, coverage_executor
+                            ).run()
+                        )
                     application.state.certificates = CertificateApplication(
                         config,
                         PrivateCertificateRepository(
@@ -141,6 +186,7 @@ def create_app(
                         ),
                         HostedCertificateTeam(config, credential),
                         certificate_store,
+                        coverage=coverage_customer,
                     )
                     application.state.certificate_store = certificate_store
                     if config.evidence_broker_enabled:
@@ -171,6 +217,10 @@ def create_app(
                     notification_task.cancel()
                     with suppress(asyncio.CancelledError):
                         await notification_task
+                if coverage_task is not None:
+                    coverage_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await coverage_task
             finally:
                 try:
                     await evidence_stack.aclose()

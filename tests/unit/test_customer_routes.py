@@ -54,6 +54,10 @@ class Runtime:
         self.check(tenant_id, actor_id)
         return PDF
 
+    def coverage_download(self, tenant_id: UUID, actor_id: UUID, request_id: UUID) -> bytes:
+        self.check(tenant_id, actor_id)
+        return PDF
+
 
 def setup(runtime: Runtime | None = None, *, override_identity: bool = True) -> TestClient:
     settings = Settings(
@@ -108,6 +112,18 @@ def test_download_is_attachment_nosniff_no_store_and_sandboxed() -> None:
     )
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Content-Security-Policy"] == "sandbox; default-src 'none'"
+
+
+def test_coverage_download_is_attachment_no_store_and_sandboxed() -> None:
+    client = setup(Runtime())
+    response = client.get(f"/coverage/{REQUEST_ID}/pdf")
+    assert response.content == PDF and response.headers["Content-Type"] == "application/pdf"
+    assert (
+        response.headers["Content-Disposition"]
+        == f'attachment; filename="innexq-coverage-{REQUEST_ID}.pdf"'
+    )
+    assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["Content-Security-Policy"] == "sandbox; default-src 'none'"
 
 

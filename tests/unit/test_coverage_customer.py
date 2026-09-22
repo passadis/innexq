@@ -1,5 +1,6 @@
 """Customer surface for coverage renewal: intents, confirmation, coarse public progress."""
 
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -195,3 +196,67 @@ def test_coverage_progress_route_maps_unknown_to_not_available() -> None:
     response = client.get(f"/coverage/{uuid4()}")
     assert response.status_code == 404
     assert response.json() == {"detail": "Request not available"}
+
+
+class _Store:
+    def __init__(self, record: CoverageRenewalRecord) -> None:
+        self._record = record
+
+    def get(self, request_id: UUID) -> tuple[CoverageRenewalRecord, str]:
+        return self._record, "etag"
+
+
+class _Controller:
+    def __init__(self, record: CoverageRenewalRecord) -> None:
+        self.store = _Store(record)
+
+
+class _Executor:
+    def __init__(self) -> None:
+        self.calls: list[tuple[UUID, str]] = []
+
+    def download(self, request_id: UUID, kind: str) -> bytes:
+        self.calls.append((request_id, kind))
+        return b"%PDF-1.4 issued coverage"
+
+
+def _record(state: CoverageRenewalState, customer_id: str = "DEMO-FAB") -> CoverageRenewalRecord:
+    moment = datetime(2026, 9, 22, tzinfo=UTC)
+    return CoverageRenewalRecord(
+        request_id=uuid4(),
+        state=state,
+        customer_id=customer_id,
+        equipment_id="DEMO-COV-001",
+        created_at=moment,
+        updated_at=moment,
+    )
+
+
+def test_customer_download_returns_the_issued_certificate_when_completed() -> None:
+    record = _record(CoverageRenewalState.COMPLETED)
+    executor = _Executor()
+    service = CoverageCustomerRuntime(_Controller(record), Investigator(), executor)
+    pdf = service.download(record.customer_id, record.request_id)
+    assert pdf.startswith(b"%PDF")
+    assert executor.calls == [(record.request_id, "certificate")]
+
+
+def test_customer_download_hides_foreign_requests() -> None:
+    record = _record(CoverageRenewalState.COMPLETED)
+    service = CoverageCustomerRuntime(_Controller(record), Investigator(), _Executor())
+    with pytest.raises(KeyError):
+        service.download("DEMO-SOMEONE-ELSE", record.request_id)
+
+
+def test_customer_download_requires_a_completed_renewal() -> None:
+    record = _record(CoverageRenewalState.EXECUTING)
+    service = CoverageCustomerRuntime(_Controller(record), Investigator(), _Executor())
+    with pytest.raises(KeyError):
+        service.download(record.customer_id, record.request_id)
+
+
+def test_customer_download_is_unavailable_without_an_executor() -> None:
+    record = _record(CoverageRenewalState.COMPLETED)
+    service = CoverageCustomerRuntime(_Controller(record), Investigator())
+    with pytest.raises(KeyError):
+        service.download(record.customer_id, record.request_id)

@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     renewal_manager_object_id: str = ""
     renewal_agent_name: str = ""
     renewal_agent_version: str = ""
+    renewal_scenarios_path: str = "corpus/fixtures/coverage-scenarios.json"
+    renewal_policy_path: str = "corpus/fixtures/coverage-renewal-policy-v1.json"
 
     @model_validator(mode="after")
     def evidence_identity_gate(self) -> "Settings":

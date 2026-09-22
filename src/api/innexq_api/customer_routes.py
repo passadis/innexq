@@ -35,6 +35,7 @@ class CustomerRuntime(Protocol):
     def coverage_progress(
         self, tenant_id: UUID, actor_id: UUID, request_id: UUID
     ) -> dict[str, Any]: ...
+    def coverage_download(self, tenant_id: UUID, actor_id: UUID, request_id: UUID) -> bytes: ...
 
 
 class ConfirmMessage(StrictContract):
@@ -137,6 +138,18 @@ def customer_app(
     @app.get("/coverage/{request_id}")
     def coverage_progress(request_id: UUID, identity: Identity) -> dict[str, str]:
         return coverage_public(service().coverage_progress(*identity, request_id))
+
+    @app.get("/coverage/{request_id}/pdf")
+    def coverage_download(request_id: UUID, identity: Identity) -> Response:
+        pdf = service().coverage_download(*identity, request_id)
+        return Response(
+            pdf,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="innexq-coverage-{request_id}.pdf"',
+                "Content-Security-Policy": "sandbox; default-src 'none'",
+            },
+        )
 
     @app.get("/requests/{request_id}")
     def status(request_id: UUID, identity: Identity) -> dict[str, str]:

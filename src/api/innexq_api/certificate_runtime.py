@@ -58,6 +58,8 @@ class CoverageCustomerPort(Protocol):
 
     def progress(self, customer_id: str, request_id: UUID) -> dict[str, Any]: ...
 
+    def download(self, customer_id: str, request_id: UUID) -> bytes: ...
+
 
 class HostedCertificateTeam:
     def __init__(self, settings: Settings, credential: Any) -> None:
@@ -416,6 +418,12 @@ class CertificateApplication:
         if self.coverage is None:
             raise KeyError(str(request_id))
         return self.coverage.progress(customer, request_id)
+
+    def coverage_download(self, tenant_id: UUID, actor_id: UUID, request_id: UUID) -> bytes:
+        customer = self._customer(tenant_id, actor_id)
+        if self.coverage is None:
+            raise KeyError(str(request_id))
+        return self.coverage.download(customer, request_id)
 
     def download(self, tenant_id: UUID, actor_id: UUID, request_id: UUID) -> bytes:
         return self._controller(request_id, "Download my existing equipment certificate").download(
