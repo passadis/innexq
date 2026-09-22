@@ -6,12 +6,18 @@ from pydantic import BaseModel
 
 from innexq_contracts.case_review import CaseCommand, CaseReview
 from innexq_contracts.certificates import CertificateRequestRecord, CertificateSources
+from innexq_contracts.coverage_renewal import (
+    CoverageRenewalRecord,
+    ManagerDecision,
+    OperationsDecision,
+    RenewalPackage,
+)
 from innexq_contracts.customer_conversation import (
     CustomerMessage,
     CustomerMessageRecord,
     CustomerReply,
 )
-from innexq_contracts.customer_status import CustomerCertificateStatus
+from innexq_contracts.customer_status import CustomerCertificateStatus, CustomerCoverageProgress
 from innexq_contracts.enterprise import EnterpriseDemoCatalog
 from innexq_contracts.events import AgentProposal, RunEvent, RunRecord
 from innexq_contracts.models import (
@@ -24,6 +30,7 @@ from innexq_contracts.models import (
 
 SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "customer-certificate-status.schema.json": CustomerCertificateStatus,
+    "customer-coverage-progress.schema.json": CustomerCoverageProgress,
     "customer-message.schema.json": CustomerMessage,
     "customer-reply.schema.json": CustomerReply,
     "customer-message-record.schema.json": CustomerMessageRecord,
@@ -31,6 +38,10 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "case-review.schema.json": CaseReview,
     "certificate-request-record.schema.json": CertificateRequestRecord,
     "certificate-sources.schema.json": CertificateSources,
+    "coverage-renewal-record.schema.json": CoverageRenewalRecord,
+    "renewal-package.schema.json": RenewalPackage,
+    "operations-decision.schema.json": OperationsDecision,
+    "manager-decision.schema.json": ManagerDecision,
     "enterprise-demo-catalog.schema.json": EnterpriseDemoCatalog,
     "run-event.schema.json": RunEvent,
     "run-record.schema.json": RunRecord,

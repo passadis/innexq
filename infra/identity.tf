@@ -64,6 +64,17 @@ resource "azuread_application" "api" {
       value                = "Evidence.Read"
     }
   }
+  dynamic "app_role" {
+    for_each = var.renewal_identity_enabled ? [1] : []
+    content {
+      id                   = "5c9d4a3e-7b21-4f6e-9d08-1a2b3c4d5e6f"
+      allowed_member_types = ["Application"]
+      description          = "Read only controller-scoped Service Coverage Renewal evidence through MCP. No pricing authority, approval, document issuance, Graph or execution capability."
+      display_name         = "Renewal Read"
+      enabled              = true
+      value                = "Renewal.Read"
+    }
+  }
 }
 
 resource "azuread_application_identifier_uri" "api" {
@@ -143,6 +154,23 @@ resource "azurerm_role_assignment" "project_acr" {
   scope                = azurerm_container_registry.main.id
   role_definition_name = "AcrPull"
   principal_id         = azapi_resource.project.output.identity.principalId
+  principal_type       = "ServicePrincipal"
+}
+
+# Hosted agent containers export telemetry under the Foundry project identity.
+# App Insights enforces Entra-only ingestion, so publish rights are mandatory.
+resource "azurerm_role_assignment" "project_telemetry" {
+  scope                = azurerm_application_insights.main.id
+  role_definition_name = "Monitoring Metrics Publisher"
+  principal_id         = azapi_resource.project.output.identity.principalId
+  principal_type       = "ServicePrincipal"
+}
+
+resource "azurerm_role_assignment" "agent_telemetry" {
+  count                = var.agent_principal_id == "" ? 0 : 1
+  scope                = azurerm_application_insights.main.id
+  role_definition_name = "Monitoring Metrics Publisher"
+  principal_id         = var.agent_principal_id
   principal_type       = "ServicePrincipal"
 }
 

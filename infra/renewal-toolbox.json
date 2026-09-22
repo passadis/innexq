@@ -1,0 +1,19 @@
+{
+  "description": "InnexQ scoped read-only Service Coverage Renewal evidence. Agent identity; no execution, approval or pricing authority.",
+  "tools": [
+    {
+      "type": "mcp",
+      "server_label": "innexq_renewal",
+      "server_url": "https://ca-innexq-dev-api.delightfulstone-498e0b81.swedencentral.azurecontainerapps.io/api/renewal/mcp",
+      "project_connection_id": "innexq-renewal",
+      "allowed_tools": [
+        "get_equipment_record",
+        "list_service_coverage_documents",
+        "analyze_service_coverage_document",
+        "retrieve_renewal_policy",
+        "calculate_renewal_quote"
+      ],
+      "require_approval": "never"
+    }
+  ]
+}

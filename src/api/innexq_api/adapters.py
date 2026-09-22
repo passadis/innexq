@@ -2,8 +2,9 @@
 
 import json
 import logging
+import re
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 from azure.identity import AzureCliCredential, ManagedIdentityCredential
@@ -155,3 +156,86 @@ class GraphExecutor:
                 # Graph accepts a send request; it does not prove recipient delivery.
                 return f"accepted:{response.headers.get('request-id', str(action.action_id))}"
             raise Denied("unsupported external action")
+
+
+class CoverageBlobStorage:
+    """Private issued-coverage artifact store over authenticated Azure Blob REST.
+
+    Uses the API managed identity with a bearer token (never account keys or SAS).
+    Writes are create-only (If-None-Match: *) so an executor retry cannot overwrite
+    an issued document; the executor's own receipt already makes retries return early.
+    """
+
+    _NAME = re.compile(r"^coverage/[0-9a-f-]{36}/[A-Za-z0-9-]{1,120}\.pdf$")
+    _MAX_BYTES = 8 * 1024 * 1024
+
+    def __init__(
+        self,
+        settings: Settings,
+        credential: Any,
+        *,
+        transport: httpx.BaseTransport | None = None,
+    ) -> None:
+        parsed = urlsplit(settings.renewal_blob_endpoint)
+        container = settings.renewal_issued_container
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or not re.fullmatch(r"[a-z0-9]{3,24}\.blob\.core\.windows\.net", parsed.hostname)
+            or parsed.netloc != parsed.hostname
+            or parsed.path not in ("", "/")
+            or parsed.query
+            or parsed.fragment
+            or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", container)
+            or not 3 <= len(container) <= 63
+        ):
+            raise Denied("exact private issued-coverage Blob origin/container required")
+        self._origin = f"{settings.renewal_blob_endpoint.rstrip('/')}/{container}"
+        self._credential, self._transport = credential, transport
+
+    def _url(self, blob_name: str) -> str:
+        if not self._NAME.fullmatch(blob_name):
+            raise Denied("issued-coverage blob name is not allowlisted")
+        return f"{self._origin}/{'/'.join(quote(part, safe='') for part in blob_name.split('/'))}"
+
+    def _headers(self) -> dict[str, str]:
+        token = self._credential.get_token("https://storage.azure.com/.default").token
+        return {"Authorization": f"Bearer {token}", "x-ms-version": "2023-11-03"}
+
+    def write(self, blob_name: str, content: bytes) -> None:
+        if len(content) > self._MAX_BYTES:
+            raise Denied("issued-coverage artifact exceeds the safe size limit")
+        url = self._url(blob_name)
+        with httpx.Client(
+            timeout=30, follow_redirects=False, transport=self._transport, trust_env=False
+        ) as client:
+            response = client.put(
+                url,
+                content=content,
+                headers={
+                    **self._headers(),
+                    "x-ms-blob-type": "BlockBlob",
+                    "Content-Type": "application/pdf",
+                    "If-None-Match": "*",
+                },
+            )
+        # A create-only conflict means the identical artifact already exists; that is idempotent.
+        if response.status_code == 409:
+            return
+        if response.status_code not in (201, 202):
+            raise Denied("issued-coverage write was not accepted")
+
+    def read(self, blob_name: str) -> bytes:
+        url = self._url(blob_name)
+        with httpx.Client(
+            timeout=30, follow_redirects=False, transport=self._transport, trust_env=False
+        ) as client:
+            with client.stream("GET", url, headers=self._headers()) as response:
+                if response.status_code != 200 or not response.headers.get("etag"):
+                    raise Denied("issued-coverage artifact unavailable")
+                content = bytearray()
+                for chunk in response.iter_bytes():
+                    if len(content) + len(chunk) > self._MAX_BYTES:
+                        raise Denied("issued-coverage artifact size limit")
+                    content.extend(chunk)
+                return bytes(content)

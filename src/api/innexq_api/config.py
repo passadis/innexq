@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     evidence_agent_principal_id: str = ""
     evidence_agent_client_id: str = ""
     evidence_api_host: str = ""
+    renewal_enabled: bool = False
+    renewal_coverage_container: str = "coverage"
+    renewal_issued_container: str = "issued-coverage"
+    renewal_blob_endpoint: str = ""
+    renewal_operations_object_id: str = ""
+    renewal_manager_object_id: str = ""
+    renewal_agent_name: str = ""
+    renewal_agent_version: str = ""
 
     @model_validator(mode="after")
     def evidence_identity_gate(self) -> "Settings":
@@ -85,6 +93,22 @@ class Settings(BaseSettings):
                 raise ValueError("Manager must be distinct from Operations and customers")
         if self.approver_user_id in self.customer_bindings:
             raise ValueError("Operations must be distinct from customers")
+        return self
+
+    @model_validator(mode="after")
+    def renewal_identity_gate(self) -> "Settings":
+        if not self.renewal_enabled:
+            return self
+        from uuid import UUID
+
+        if not self.certificates_enabled or not self.api_audience:
+            raise ValueError("certificate runtime and explicit audience required for renewal")
+        operations = UUID(self.renewal_operations_object_id)
+        manager = UUID(self.renewal_manager_object_id)
+        if operations == manager:
+            raise ValueError("renewal Operations and Manager must be distinct identities")
+        if not self.renewal_blob_endpoint.startswith("https://"):
+            raise ValueError("renewal requires an exact HTTPS blob endpoint")
         return self
 
     api_audience: str = ""

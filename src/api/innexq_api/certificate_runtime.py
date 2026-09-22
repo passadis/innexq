@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable
 from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
 from azure.ai.projects import AIProjectClient
@@ -45,6 +45,18 @@ from innexq_api.document_extraction import (
 class CertificateTeam(Protocol):
     def investigate(self, packet: dict[str, Any]) -> tuple[SpecialistProof, ...]: ...
     def interpret(self, packet: dict[str, Any]) -> tuple[CustomerInterpretation, str]: ...
+
+
+class CoverageCustomerPort(Protocol):
+    """Optional Service Coverage Renewal pack; absence degrades to unsupported replies."""
+
+    def outcome(
+        self, customer_id: str, equipment_id: str
+    ) -> "Literal['existing_pdf', 'renewal_required', 'unavailable']": ...
+
+    def start(self, customer_id: str, equipment_id: str, request_id: UUID) -> dict[str, Any]: ...
+
+    def progress(self, customer_id: str, request_id: UUID) -> dict[str, Any]: ...
 
 
 class HostedCertificateTeam:
@@ -304,10 +316,12 @@ class CertificateApplication:
         store: CosmosCertificateStore,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
         evidence_factory: Callable[[UUID, str, str], CertificateEvidenceReader] | None = None,
+        coverage: CoverageCustomerPort | None = None,
     ) -> None:
         self.settings, self.repository, self.extractor = settings, repository, extractor
         self.team, self.store, self.now = team, store, now
         self.evidence_factory = evidence_factory
+        self.coverage = coverage
         self.bindings = {UUID(k): v for k, v in settings.customer_bindings.items()}
         if UUID(settings.approver_user_id) in self.bindings:
             raise ValueError("Operations cannot have a customer binding")
@@ -394,6 +408,14 @@ class CertificateApplication:
         return self._controller(request_id, "Certificate status").customer_status(
             tenant_id, actor_id, request_id
         )
+
+    def coverage_progress(
+        self, tenant_id: UUID, actor_id: UUID, request_id: UUID
+    ) -> dict[str, Any]:
+        customer = self._customer(tenant_id, actor_id)
+        if self.coverage is None:
+            raise KeyError(str(request_id))
+        return self.coverage.progress(customer, request_id)
 
     def download(self, tenant_id: UUID, actor_id: UUID, request_id: UUID) -> bytes:
         return self._controller(request_id, "Download my existing equipment certificate").download(

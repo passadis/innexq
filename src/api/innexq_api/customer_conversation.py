@@ -176,6 +176,8 @@ class CustomerConversation:
                     "Nothing has been requested."
                 ),
             )
+        if intent in ("service_document_request", "coverage_renewal"):
+            return self._coverage(customer, body, equipment)
         if intent == "certificate_request":
             return CustomerReply(
                 message_id=body.message_id,
@@ -191,6 +193,60 @@ class CustomerConversation:
                 ),
             )
         return self._status(tenant, customer, body, proposal)
+
+    def _coverage(self, customer: str, body: CustomerMessage, equipment: str) -> CustomerReply:
+        """Read-only outcome check; only explicit confirmation starts a renewal."""
+
+        coverage = self.app.coverage
+        if coverage is None:
+            return CustomerReply(
+                message_id=body.message_id,
+                intent="coverage_renewal",
+                equipment_id=equipment,
+                kind="unsupported",
+                message=(
+                    "Service coverage renewal is not available right now. "
+                    "Please contact Operations. Nothing was requested."
+                ),
+            )
+        outcome = coverage.outcome(customer, equipment)
+        if outcome == "existing_pdf":
+            return CustomerReply(
+                message_id=body.message_id,
+                intent="service_document_request",
+                equipment_id=equipment,
+                kind="answer",
+                message=(
+                    f"The service coverage document for {equipment} is current. "
+                    "No renewal is needed at this time. "
+                    "Contact Operations if you need a copy of the document."
+                ),
+            )
+        if outcome == "renewal_required":
+            return CustomerReply(
+                message_id=body.message_id,
+                intent="coverage_renewal",
+                equipment_id=equipment,
+                kind="confirmation_required",
+                can_confirm=True,
+                message=(
+                    f"The service coverage for {equipment} is not current. "
+                    "Confirm below to request a renewal: the recorded evidence is checked, "
+                    "a quote is prepared from the price register, and both Operations and a "
+                    "Manager must approve before any document is issued or anything is charged."
+                ),
+            )
+        return CustomerReply(
+            message_id=body.message_id,
+            intent="coverage_renewal",
+            equipment_id=equipment,
+            kind="answer",
+            message=(
+                f"I could not verify the recorded coverage for {equipment}. "
+                "The required evidence is missing, changed, unavailable or could not be "
+                "verified. Please contact Operations. Nothing was requested or charged."
+            ),
+        )
 
     def _status(
         self, tenant: UUID, customer: str, body: CustomerMessage, proposal: CustomerInterpretation
@@ -275,6 +331,8 @@ class CustomerConversation:
     def confirm(self, tenant: UUID, actor: UUID, message_id: UUID) -> dict[str, str]:
         record = self._read(tenant, actor, message_id)
         reply = record.reply
+        if reply.can_confirm and reply.intent == "coverage_renewal":
+            return self._confirm_coverage(tenant, actor, record)
         if (
             not reply.can_confirm
             or reply.intent != "certificate_request"
@@ -296,3 +354,21 @@ class CustomerConversation:
             raise Conflict("certificate proposal expired; ask again")
         controller.request(tenant, actor, reply.equipment_id, message_id)
         return controller.customer_status(tenant, actor, message_id)
+
+    def _confirm_coverage(
+        self, tenant: UUID, actor: UUID, record: CustomerMessageRecord
+    ) -> dict[str, str]:
+        coverage = self.app.coverage
+        equipment = record.reply.equipment_id
+        if coverage is None or equipment is None:
+            raise Denied("coverage renewal is not available")
+        customer = self.app._customer(tenant, actor)
+        message_id = record.input.message_id
+        try:
+            # Identical retries remain available after proposal expiry once started.
+            return coverage.progress(customer, message_id)
+        except KeyError:
+            pass
+        if self.app.now() >= record.expires_at:
+            raise Conflict("renewal proposal expired; ask again")
+        return coverage.start(customer, equipment, message_id)

@@ -21,6 +21,7 @@ dependencies = [
   "mcp==1.30.0",
   "pydantic>=2.11,<3",
   "pydantic-settings>=2.10,<3",
+  "fpdf2>=2.8,<3",
 ]
 
 [dependency-groups]

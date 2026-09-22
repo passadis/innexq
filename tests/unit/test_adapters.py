@@ -236,3 +236,82 @@ def test_cosmos_reads_reference_and_actor_query(system: Any, cosmos: Any) -> Non
     assert len(store.events(r.run.run_id)) == 1
     store.ping()
     container.read.assert_called_once()
+
+
+def coverage_storage(handler: Any) -> Any:
+    from innexq_api.adapters import CoverageBlobStorage
+
+    settings = Settings(
+        _env_file=None,
+        renewal_blob_endpoint="https://stinnexq123.blob.core.windows.net",
+        renewal_issued_container="issued-coverage",
+    )
+    credential = MagicMock()
+    credential.get_token.return_value.token = "offline-placeholder"  # noqa: S105
+    return CoverageBlobStorage(settings, credential, transport=httpx.MockTransport(handler))
+
+
+BLOB = "coverage/11111111-1111-4111-8111-111111111111/DEMO-COV-001-COVERAGE-SYN-INV-2026-00001.pdf"
+
+
+def test_coverage_blob_create_only_write_and_authenticated_read() -> None:
+    seen: list[httpx.Request] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.method == "PUT":
+            return httpx.Response(201, headers={"etag": "w1"})
+        return httpx.Response(200, content=b"%PDF-1.7 issued", headers={"etag": "w1"})
+
+    storage = coverage_storage(handle)
+    storage.write(BLOB, b"%PDF-1.7 issued")
+    assert storage.read(BLOB) == b"%PDF-1.7 issued"
+    put = seen[0]
+    assert put.method == "PUT"
+    assert put.headers["If-None-Match"] == "*"
+    assert put.headers["x-ms-blob-type"] == "BlockBlob"
+    assert put.headers["Authorization"] == "Bearer offline-placeholder"
+    assert put.url.host == "stinnexq123.blob.core.windows.net"
+
+
+def test_coverage_blob_conflict_is_idempotent_and_failures_denied() -> None:
+    codes = iter([409, 500])
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(next(codes))
+
+    storage = coverage_storage(handle)
+    storage.write(BLOB, b"pdf")  # 409 create-only conflict is treated as idempotent success
+    with pytest.raises(Denied):
+        storage.write(BLOB, b"pdf")  # 500 is a hard failure
+
+
+@pytest.mark.parametrize(
+    "blob_name",
+    [
+        "coverage/not-a-uuid/doc.pdf",
+        "coverage/11111111-1111-4111-8111-111111111111/../escape.pdf",
+        "certificate/11111111-1111-4111-8111-111111111111/doc.pdf",
+        "coverage/11111111-1111-4111-8111-111111111111/doc.exe",
+    ],
+)
+def test_coverage_blob_rejects_unallowlisted_names(blob_name: str) -> None:
+    storage = coverage_storage(lambda request: httpx.Response(201, headers={"etag": "w"}))
+    with pytest.raises(Denied):
+        storage.write(blob_name, b"pdf")
+    with pytest.raises(Denied):
+        storage.read(blob_name)
+
+
+def test_coverage_blob_rejects_untrusted_endpoint() -> None:
+    from innexq_api.adapters import CoverageBlobStorage
+
+    with pytest.raises(Denied):
+        CoverageBlobStorage(
+            Settings(
+                _env_file=None,
+                renewal_blob_endpoint="https://evil.example.com",
+                renewal_issued_container="issued-coverage",
+            ),
+            MagicMock(),
+        )

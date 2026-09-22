@@ -1,0 +1,35 @@
+{
+  "synthetic": true,
+  "policy_id": "COVERAGE-RENEWAL-001",
+  "policy_version": 1,
+  "workflow_pack": "service-coverage-renewal",
+  "renewal_duration_months": 12,
+  "coverage_start_rule": "manager_approval_date",
+  "backdating_allowed": false,
+  "renewal_window_days_before_expiry": 60,
+  "pricing_rule_id": "coverage-renewal-price",
+  "pricing_rule_version": "2026-09-22",
+  "currency": "EUR",
+  "vat_rate_percent": "24.00",
+  "invoice_number_format": "SYN-INV-{year}-{sequence:05d}",
+  "invoice_notice": "SYNTHETIC DEMO — NOT A FISCAL OR TAX DOCUMENT",
+  "renewable_document_type": "service_coverage_certificate",
+  "non_renewable_document_types": [
+    "statutory",
+    "inspection",
+    "conformity",
+    "safety"
+  ],
+  "equipment_status_exclusions": ["inactive", "decommissioned", "uncovered"],
+  "max_batch_size": 10,
+  "approver_roles": {
+    "operations": "configured_operations_object_id",
+    "manager": "configured_manager_object_id",
+    "distinct_identities_required": true
+  },
+  "notification_rules": {
+    "channels": ["teams_operations_channel", "customer_portal"],
+    "content": "pre_approved_only",
+    "internal_notes_visible_to_customer": false
+  }
+}

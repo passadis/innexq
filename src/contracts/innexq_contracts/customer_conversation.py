@@ -14,6 +14,8 @@ CustomerIntent = Literal[
     "service_status",
     "certificate_status",
     "service_request",
+    "service_document_request",
+    "coverage_renewal",
     "general",
     "clarify",
 ]
@@ -54,8 +56,11 @@ class CustomerReply(StrictContract):
     def confirmation_is_only_a_certificate_proposal(self) -> Self:
         if self.can_confirm != (self.kind == "confirmation_required"):
             raise ValueError("confirmation flag must match reply kind")
-        if self.can_confirm and (self.intent != "certificate_request" or self.equipment_id is None):
-            raise ValueError("only an identified certificate request may be confirmed")
+        if self.can_confirm and (
+            self.intent not in ("certificate_request", "coverage_renewal")
+            or self.equipment_id is None
+        ):
+            raise ValueError("only an identified certificate or renewal request may be confirmed")
         return self
 
 

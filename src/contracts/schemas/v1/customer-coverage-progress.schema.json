@@ -1,0 +1,43 @@
+{
+  "$id": "https://schemas.innexq.invalid/v1/customer-coverage-progress.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Coarse public renewal progress; internal notes and reasons never appear here.",
+  "properties": {
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "progress": {
+      "enum": [
+        "Evidence review",
+        "Awaiting Operations",
+        "Awaiting Manager",
+        "Issuing documents",
+        "Completed",
+        "Held or rejected"
+      ],
+      "title": "Progress",
+      "type": "string"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "progress",
+    "message",
+    "updated_at"
+  ],
+  "title": "CustomerCoverageProgress",
+  "type": "object"
+}

@@ -89,7 +89,7 @@ def security_check() -> None:
         "--exclude-files",
         (
             r"(^|[\\/])(\.git|\.venv|\.uv-cache|\.test-artifacts|\.terraform|\.mypy_cache|"
-            r"\.pytest_cache|\.ruff_cache|node_modules|dist|test-results)([\\/]|$)|uv\.lock$|package-lock\.json$"
+            r"\.pytest_cache|\.ruff_cache|\.publish|node_modules|dist|test-results)([\\/]|$)|uv\.lock$|package-lock\.json$"
             r"|(^|[\\/])\.azure[\\/](?!deployment-plan\.md$|\.gitignore$)"
         ),
     ]

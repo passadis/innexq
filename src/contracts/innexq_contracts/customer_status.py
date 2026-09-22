@@ -20,3 +20,22 @@ class CustomerCertificateStatus(StrictContract):
         if (self.status == "release_ready") != (self.case_status == "not_required"):
             raise ValueError("case progress cannot authorize certificate release")
         return self
+
+
+CoveragePublicProgress = Literal[
+    "Evidence review",
+    "Awaiting Operations",
+    "Awaiting Manager",
+    "Issuing documents",
+    "Completed",
+    "Held or rejected",
+]
+
+
+class CustomerCoverageProgress(StrictContract):
+    """Coarse public renewal progress; internal notes and reasons never appear here."""
+
+    request_id: UUID
+    progress: CoveragePublicProgress
+    message: NonEmptyText
+    updated_at: AwareDatetime

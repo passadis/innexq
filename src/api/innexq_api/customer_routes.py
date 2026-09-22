@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from innexq_contracts.customer_conversation import CustomerMessage, CustomerReply
-from innexq_contracts.customer_status import CustomerCertificateStatus
+from innexq_contracts.customer_status import CustomerCertificateStatus, CustomerCoverageProgress
 from innexq_contracts.models import StrictContract
 from pydantic import Field
 
@@ -32,6 +32,9 @@ class CustomerRuntime(Protocol):
     def download(self, tenant_id: UUID, actor_id: UUID, request_id: UUID) -> bytes: ...
     def message(self, tenant_id: UUID, actor_id: UUID, body: CustomerMessage) -> CustomerReply: ...
     def confirm(self, tenant_id: UUID, actor_id: UUID, message_id: UUID) -> dict[str, str]: ...
+    def coverage_progress(
+        self, tenant_id: UUID, actor_id: UUID, request_id: UUID
+    ) -> dict[str, Any]: ...
 
 
 class ConfirmMessage(StrictContract):
@@ -108,6 +111,10 @@ def customer_app(
         }
         return CustomerCertificateStatus.model_validate(public).model_dump(mode="json")
 
+    def coverage_public(value: dict[str, Any]) -> dict[str, str]:
+        public = {key: value[key] for key in ("request_id", "progress", "message", "updated_at")}
+        return CustomerCoverageProgress.model_validate(public).model_dump(mode="json")
+
     @app.get("/catalog")
     def catalog(identity: Identity) -> dict[str, Any]:
         return service().catalog(*identity)
@@ -122,7 +129,14 @@ def customer_app(
 
     @app.post("/messages/{message_id}/confirm")
     def confirm(message_id: UUID, body: ConfirmMessage, identity: Identity) -> dict[str, str]:
-        return public_status(service().confirm(*identity, message_id))
+        result = service().confirm(*identity, message_id)
+        if "progress" in result:
+            return coverage_public(result)
+        return public_status(result)
+
+    @app.get("/coverage/{request_id}")
+    def coverage_progress(request_id: UUID, identity: Identity) -> dict[str, str]:
+        return coverage_public(service().coverage_progress(*identity, request_id))
 
     @app.get("/requests/{request_id}")
     def status(request_id: UUID, identity: Identity) -> dict[str, str]:
