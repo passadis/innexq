@@ -32,6 +32,8 @@ CustomerIntent = Literal[
     "service_status",
     "certificate_status",
     "service_request",
+    "service_document_request",
+    "coverage_renewal",
     "general",
     "clarify",
 ]
@@ -105,6 +107,11 @@ CUSTOMER_INSTRUCTIONS = (
     "certificate valid?' is certificate_status, not a PDF request. 'Is the service for PT-001 "
     "updated?' is service_status. A request to arrange or book service is service_request "
     "(unsupported booking), never a certificate_request; equipment_id may be null when missing. "
+    "A request to renew, extend, reinstate or restart service coverage, a service plan, a "
+    "service agreement or a coverage/service-plan certificate is coverage_renewal. A request "
+    "to obtain or check an existing service coverage or service-plan document, distinct from a "
+    "machine certificate PDF, is service_document_request. Both are equipment-specific: without "
+    "an unambiguous machine return clarify with null equipment_id. "
     "General explanatory questions such as "
     "'what is a certificate?' are general. Negation such as 'do not send the certificate' "
     "must never become a certificate_request. A later cancellation overrides earlier requests. "

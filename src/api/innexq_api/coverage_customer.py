@@ -60,6 +60,10 @@ class CoverageCustomerRuntime:
     ) -> Literal["existing_pdf", "renewal_required", "unavailable"]:
         return self.controller.document_request_outcome(customer_id, equipment_id)
 
+    def equipment(self, customer_id: str) -> tuple[str, ...]:
+        """Coverage-enrolled equipment so the customer can reference it in chat."""
+        return self.controller.reader.equipment_ids(customer_id)
+
     def start(self, customer_id: str, equipment_id: str, request_id: UUID) -> dict[str, Any]:
         """Confirmed customer intent; the message identifier makes retries idempotent."""
 

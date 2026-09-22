@@ -71,6 +71,13 @@ class CustomerConversation:
         equipment_ids = [
             e.equipment_id for e in registry.catalog.equipment if e.customer_id == customer
         ]
+        if self.app.coverage is not None:
+            coverage_ids = [
+                equipment_id
+                for equipment_id in self.app.coverage.equipment(customer)
+                if equipment_id not in equipment_ids
+            ]
+            equipment_ids = (equipment_ids + coverage_ids)[:10]
         if selected is not None and selected not in equipment_ids:
             raise Denied("equipment unavailable")
         proposal, response_id = self.app.team.interpret(

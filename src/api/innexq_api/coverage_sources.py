@@ -57,6 +57,9 @@ class FixtureCoverageSourceReader:
     def scenario(self, customer_id: str, equipment_id: str) -> dict[str, Any] | None:
         return self._by_equipment.get((customer_id, equipment_id))
 
+    def equipment_ids(self, customer_id: str) -> tuple[str, ...]:
+        return tuple(equipment for (owner, equipment) in self._by_equipment if owner == customer_id)
+
     def pricing_rule_version(self) -> str:
         return str(self._policy["pricing_rule_version"])
 

@@ -60,6 +60,8 @@ class CoverageCustomerPort(Protocol):
 
     def download(self, customer_id: str, request_id: UUID) -> bytes: ...
 
+    def equipment(self, customer_id: str) -> tuple[str, ...]: ...
+
 
 class HostedCertificateTeam:
     def __init__(self, settings: Settings, credential: Any) -> None:

@@ -50,6 +50,14 @@ def test_base_amount_and_customer_name_come_from_the_registry() -> None:
     assert r.customer_name("DEMO-FAB") == "Fabrikam Industrial AB"
 
 
+def test_equipment_ids_enumerate_only_the_customer_own_coverage_scope() -> None:
+    r = reader()
+    equipment = r.equipment_ids("DEMO-FAB")
+    assert "DEMO-COV-001" in equipment
+    assert all(item.startswith("DEMO-COV-") for item in equipment)
+    assert r.equipment_ids("DEMO-GHOST") == ()
+
+
 def test_unknown_equipment_yields_empty_sources_and_no_price() -> None:
     r = reader()
     empty = r.sources("DEMO-FAB", "DEMO-NOPE")

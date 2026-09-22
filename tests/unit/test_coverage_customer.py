@@ -90,16 +90,30 @@ def test_progress_never_confirms_foreign_or_unknown_requests() -> None:
         service.progress(data["customer_id"], uuid4())
 
 
+def test_runtime_lists_coverage_equipment_for_scope_bridging() -> None:
+    service, _, _ = runtime()
+    equipment = service.equipment("DEMO-FAB")
+    assert "DEMO-COV-001" in equipment
+    assert all(item.startswith("DEMO-COV-") for item in equipment)
+    assert service.equipment("DEMO-NOBODY") == ()
+
+
 class Port:
     """Conversation-level double for the coverage customer runtime."""
 
-    def __init__(self, result: str = "renewal_required") -> None:
+    def __init__(
+        self, result: str = "renewal_required", equipment: tuple[str, ...] = ("DEMO-COV-001",)
+    ) -> None:
         self.result = result
+        self._equipment = equipment
         self.started: list[tuple[str, str, UUID]] = []
         self.progress_calls = 0
 
     def outcome(self, customer_id: str, equipment_id: str) -> str:
         return self.result
+
+    def equipment(self, customer_id: str) -> tuple[str, ...]:
+        return self._equipment
 
     def start(self, customer_id: str, equipment_id: str, request_id: UUID) -> dict[str, Any]:
         self.started.append((customer_id, equipment_id, request_id))
@@ -158,6 +172,15 @@ def test_unavailable_coverage_reports_generically_and_pack_absence_is_unsupporte
     app.coverage = None
     absent = app.message(TENANT, ACTOR, message("Renew coverage for PT-001"))
     assert absent.kind == "unsupported" and not absent.can_confirm
+
+
+def test_coverage_only_equipment_is_bridged_into_customer_scope() -> None:
+    app, _, _, _, _, _, packets = conversation("coverage_renewal", equipment="DEMO-COV-001")
+    app.coverage = Port()
+    reply = app.message(TENANT, ACTOR, message("Renew coverage for COV-001"))
+    assert reply.kind == "confirmation_required" and reply.can_confirm
+    assert reply.equipment_id == "DEMO-COV-001"
+    assert "DEMO-COV-001" in packets[0]["equipment_ids"]
 
 
 def test_reply_contract_rejects_confirmable_replies_outside_scoped_intents() -> None:

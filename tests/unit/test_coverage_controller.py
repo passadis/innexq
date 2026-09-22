@@ -78,6 +78,13 @@ class Reader:
     def customer_name(self, customer_id: str) -> str:
         return "Fabrikam Industrial AB" if customer_id == "DEMO-FAB" else "Northwind Logistics"
 
+    def equipment_ids(self, customer_id: str) -> tuple[str, ...]:
+        return tuple(
+            item["equipment_id"]
+            for item in FIXTURE["scenarios"]
+            if item["customer_id"] == customer_id
+        )
+
 
 def facts(data: dict[str, Any]) -> tuple[CoverageSourceFact, ...]:
     document = data["document"]
