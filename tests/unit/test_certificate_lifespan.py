@@ -55,6 +55,15 @@ def bootstrap(monkeypatch):
         "innexq_api.certificate_notifications.CertificateNotifications": MagicMock(
             run=notifications
         ),
+        "innexq_api.adapters.CoverageBlobStorage": MagicMock(),
+        "innexq_api.coverage_store.CosmosCoverageStore": MagicMock(),
+        "innexq_api.coverage_sources.FixtureCoverageSourceReader": MagicMock(),
+        "innexq_api.coverage_sources.FixtureCoverageInvestigator": MagicMock(),
+        "innexq_api.coverage_controller.CoverageController": MagicMock(),
+        "innexq_api.coverage_executor.CoverageExecutor": MagicMock(),
+        "innexq_api.main.CoverageReviewService": MagicMock(),
+        "innexq_api.coverage_customer.CoverageCustomerRuntime": MagicMock(),
+        "innexq_api.coverage_runner.CoverageExecutionRunner": MagicMock(),
     }.items():
         factory = MagicMock(return_value=value)
         monkeypatch.setattr(path, factory)
@@ -188,6 +197,60 @@ def test_injected_local_runtime_never_creates_cloud_adapters(bootstrap):
     assert all(factory.call_count == 0 for factory in factories.values())
     executor.close.assert_not_called()
     reader.close.assert_not_called()
+
+
+def test_renewal_enabled_startup_wires_coverage_and_cancels_the_runner(bootstrap, monkeypatch):
+    _, factories, _, _, _ = bootstrap
+    coverage_state = {"started": False, "cancelled": False}
+
+    async def coverage_worker():
+        coverage_state["started"] = True
+        try:
+            await asyncio.Future()
+        finally:
+            coverage_state["cancelled"] = True
+
+    monkeypatch.setattr(
+        "innexq_api.coverage_runner.CoverageExecutionRunner",
+        MagicMock(return_value=MagicMock(run=coverage_worker)),
+    )
+    settings = Settings(
+        _env_file=None,
+        cosmos_endpoint="https://cosmos.example.invalid",
+        certificates_enabled=True,
+        managed_identity_client_id=EXECUTOR_ID,
+        certificate_reader_client_id=READER_ID,
+        customer_bindings={str(ACTOR): "DEMO-FAB"},
+        customer_origins=[ORIGIN],
+        web_origins=[STAFF_ORIGIN],
+        renewal_enabled=True,
+        api_audience="api://innexq",
+        renewal_operations_object_id="33333333-3333-4333-8333-333333333333",
+        renewal_manager_object_id="44444444-4444-4444-8444-444444444444",
+        renewal_blob_endpoint="https://issued.blob.core.windows.net",
+    )
+    app = create_app(settings)
+    with TestClient(app) as client:
+        assert client.get("/health/live").status_code == 200
+        assert coverage_state["started"] and not coverage_state["cancelled"]
+        assert app.state.coverage_review is factories["CoverageReviewService"].return_value
+        factories["FixtureCoverageSourceReader"].assert_called_once_with(
+            settings.renewal_scenarios_path, settings.renewal_policy_path
+        )
+        assert factories["CertificateApplication"].call_args.kwargs["coverage"] is (
+            factories["CoverageCustomerRuntime"].return_value
+        )
+    assert coverage_state["cancelled"]
+
+
+def test_disabled_renewal_never_constructs_coverage_runtime(bootstrap):
+    settings, factories, _, _, _ = bootstrap
+    app = create_app(settings)
+    with TestClient(app) as client:
+        assert client.get("/health/live").status_code == 200
+    assert app.state.coverage_review is None
+    for name in ("CoverageCustomerRuntime", "CoverageReviewService", "CosmosCoverageStore"):
+        factories[name].assert_not_called()
 
 
 def test_mounted_customer_cors_does_not_inherit_employee_origin_or_methods():

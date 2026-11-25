@@ -141,6 +141,8 @@
             "service_status",
             "certificate_status",
             "service_request",
+            "service_document_request",
+            "coverage_renewal",
             "general",
             "clarify"
           ],

@@ -27,10 +27,13 @@ from innexq_api.config import Settings
 from innexq_api.evidence_broker import ROLES, EvidenceBinding, EvidenceBroker, Role
 from innexq_api.evidence_sources import CertificateEvidenceBackend
 
+# This runtime serves Certificate Fulfilment only; renewal roles are out of scope here.
+CertificateRole = Literal["document_analyst", "equipment_service"]
+
 
 class Report(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
-    specialist: Role
+    specialist: CertificateRole
     response_id: str = Field(min_length=1, max_length=200)
     summary: str = Field(min_length=1, max_length=2000)
     receipt_ids: list[UUID] = Field(min_length=2, max_length=6)

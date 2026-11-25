@@ -1,0 +1,150 @@
+{
+  "synthetic": true,
+  "description": "SYNTHETIC HACKATHON FIXTURES for Service Coverage Renewal scenarios. Never rewrite dates to force a demo pass.",
+  "as_of": "2026-09-22T00:00:00Z",
+  "fresh_until": "2027-03-22T00:00:00Z",
+  "scenarios": [
+    {
+      "scenario": "expired_eligible",
+      "customer_id": "DEMO-FAB",
+      "equipment_id": "DEMO-COV-001",
+      "serial_number": "COV-SERIAL-0001",
+      "equipment_model": "IC-3000 Industrial Compressor",
+      "equipment_status": "active",
+      "document": {
+        "document_id": "DEMO-COV-001-COVERAGE-PDF",
+        "document_version": "1",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "document_type": "service_coverage_certificate",
+        "coverage_from": "2025-08-01T00:00:00Z",
+        "coverage_until": "2026-08-01T00:00:00Z",
+        "accessible": true
+      },
+      "billing_profile": {
+        "legal_name": "Fabrikam Industrial AB",
+        "address_line": "Industrigatan 12",
+        "city": "Stockholm",
+        "country_code": "SE",
+        "vat_id": "SE555555555501"
+      },
+      "annual_coverage_price": "8500.00"
+    },
+    {
+      "scenario": "current_coverage",
+      "customer_id": "DEMO-FAB",
+      "equipment_id": "DEMO-COV-002",
+      "serial_number": "COV-SERIAL-0002",
+      "equipment_model": "IC-3000 Industrial Compressor",
+      "equipment_status": "active",
+      "document": {
+        "document_id": "DEMO-COV-002-COVERAGE-PDF",
+        "document_version": "1",
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "document_type": "service_coverage_certificate",
+        "coverage_from": "2026-06-01T00:00:00Z",
+        "coverage_until": "2027-06-01T00:00:00Z",
+        "accessible": true
+      },
+      "billing_profile": {
+        "legal_name": "Fabrikam Industrial AB",
+        "address_line": "Industrigatan 12",
+        "city": "Stockholm",
+        "country_code": "SE",
+        "vat_id": "SE555555555501"
+      },
+      "annual_coverage_price": "9200.00"
+    },
+    {
+      "scenario": "non_renewable_safety_document",
+      "customer_id": "DEMO-FAB",
+      "equipment_id": "DEMO-COV-003",
+      "serial_number": "COV-SERIAL-0003",
+      "equipment_model": "HL-900 Hydraulic Lift",
+      "equipment_status": "active",
+      "document": {
+        "document_id": "DEMO-COV-003-SAFETY-PDF",
+        "document_version": "1",
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "document_type": "safety",
+        "coverage_from": "2025-01-01T00:00:00Z",
+        "coverage_until": "2026-01-01T00:00:00Z",
+        "accessible": true
+      },
+      "billing_profile": {
+        "legal_name": "Fabrikam Industrial AB",
+        "address_line": "Industrigatan 12",
+        "city": "Stockholm",
+        "country_code": "SE",
+        "vat_id": "SE555555555501"
+      },
+      "annual_coverage_price": "7000.00"
+    },
+    {
+      "scenario": "missing_evidence",
+      "customer_id": "DEMO-NW",
+      "equipment_id": "DEMO-COV-004",
+      "serial_number": "COV-SERIAL-0004",
+      "equipment_model": "CB-200 Conveyor Belt",
+      "equipment_status": "active",
+      "document": null,
+      "billing_profile": {
+        "legal_name": "Northwind Logistics Ltd",
+        "address_line": "1 Dock Road",
+        "city": "Liverpool",
+        "country_code": "GB",
+        "vat_id": "GB999999973"
+      },
+      "annual_coverage_price": "6100.00"
+    },
+    {
+      "scenario": "incomplete_billing_profile",
+      "customer_id": "DEMO-NW",
+      "equipment_id": "DEMO-COV-005",
+      "serial_number": "COV-SERIAL-0005",
+      "equipment_model": "CB-200 Conveyor Belt",
+      "equipment_status": "active",
+      "document": {
+        "document_id": "DEMO-COV-005-COVERAGE-PDF",
+        "document_version": "1",
+        "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "document_type": "service_coverage_certificate",
+        "coverage_from": "2025-07-01T00:00:00Z",
+        "coverage_until": "2026-07-01T00:00:00Z",
+        "accessible": true
+      },
+      "billing_profile": {
+        "legal_name": "Northwind Logistics Ltd",
+        "address_line": null,
+        "city": null,
+        "country_code": "GB",
+        "vat_id": null
+      },
+      "annual_coverage_price": "6100.00"
+    },
+    {
+      "scenario": "inactive_equipment",
+      "customer_id": "DEMO-NW",
+      "equipment_id": "DEMO-COV-006",
+      "serial_number": "COV-SERIAL-0006",
+      "equipment_model": "CB-200 Conveyor Belt",
+      "equipment_status": "decommissioned",
+      "document": {
+        "document_id": "DEMO-COV-006-COVERAGE-PDF",
+        "document_version": "1",
+        "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "document_type": "service_coverage_certificate",
+        "coverage_from": "2025-05-01T00:00:00Z",
+        "coverage_until": "2026-05-01T00:00:00Z",
+        "accessible": true
+      },
+      "billing_profile": {
+        "legal_name": "Northwind Logistics Ltd",
+        "address_line": "1 Dock Road",
+        "city": "Liverpool",
+        "country_code": "GB",
+        "vat_id": "GB999999973"
+      },
+      "annual_coverage_price": "5800.00"
+    }
+  ]
+}

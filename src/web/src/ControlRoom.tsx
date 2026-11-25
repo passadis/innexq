@@ -4,7 +4,9 @@ import type { RunEvent, RunRecord } from './contracts';
 import { parseDecisionLink } from './decision-link';
 import { EmailPreview } from './EmailPreview';
 import { CertificateCases } from './CertificateCases';
+import { CoverageRenewals } from './CoverageRenewals';
 import type { OperationsApi } from './operations-api';
+import type { CoverageApi } from './coverage-api';
 import './control-room.css';
 
 export interface ControlRoomProps {
@@ -16,6 +18,7 @@ export interface ControlRoomProps {
   accountName: string;
   onSignOut: () => void;
   operationsApi?: OperationsApi;
+  coverageApi?: CoverageApi;
 }
 
 type View = 'overview' | 'evidence' | 'decision' | 'timeline';
@@ -151,7 +154,7 @@ function Timeline({ events }: { events: RunEvent[] }) {
   </section>;
 }
 
-export function ControlRoom({ api, accountName, onSignOut, operationsApi }: ControlRoomProps) {
+export function ControlRoom({ api, accountName, onSignOut, operationsApi, coverageApi }: ControlRoomProps) {
   const [linked] = useState(() => parseDecisionLink(window.location.search));
   const [epoch, setEpoch] = useState(0);
   const [list, setList] = useState<RunList | null>(null);
@@ -213,13 +216,14 @@ export function ControlRoom({ api, accountName, onSignOut, operationsApi }: Cont
 
   return <div className="iq-app">
     <a className="iq-skip" href="#iq-main">Skip to Control Room</a>
-    <aside className="iq-rail" aria-label="Product navigation"><a href="#iq-main" className="iq-brand" aria-label="InnexQ Control Room"><span className="iq-brand-symbol" aria-hidden="true">iQ</span><span>Innex<span className="iq-brand-q">Q</span></span></a><div className="iq-rail-label">WORKSPACE</div><div className="iq-rail-current"><span aria-hidden="true">▦</span> Control Room</div><div className="iq-rail-pack"><span className="iq-rail-label">WORKFLOW PACKS</span><strong>Contract Renewal</strong>{operationsApi && <strong>Certificate Fulfilment</strong>}<span>Governed from evidence<br />to execution.</span></div><div className="iq-rail-footer"><span className="iq-security-dot" aria-hidden="true" />Read-only workspace</div></aside>
+    <aside className="iq-rail" aria-label="Product navigation"><a href="#iq-main" className="iq-brand" aria-label="InnexQ Control Room"><span className="iq-brand-symbol" aria-hidden="true">iQ</span><span>Innex<span className="iq-brand-q">Q</span></span></a><div className="iq-rail-label">WORKSPACE</div><div className="iq-rail-current"><span aria-hidden="true">▦</span> Control Room</div><div className="iq-rail-pack"><span className="iq-rail-label">WORKFLOW PACKS</span><strong>Contract Renewal</strong>{operationsApi && <strong>Certificate Fulfilment</strong>}{coverageApi && <strong>Coverage Renewal</strong>}<span>Governed from evidence<br />to execution.</span></div><div className="iq-rail-footer"><span className="iq-security-dot" aria-hidden="true" />Read-only workspace</div></aside>
     <div className="iq-workspace"><header className="iq-topbar"><span className="iq-breadcrumb">InnexQ <span aria-hidden="true">/</span> Control Room</span><div className="iq-account"><span title={accountName}>{accountName}</span><Button appearance="subtle" size="small" onClick={onSignOut}>Sign out</Button></div></header>
       <main id="iq-main" className="iq-main" tabIndex={-1}>
         <div className="iq-page-heading"><div><div className="iq-eyebrow">GOVERNED ENTERPRISE WORKFLOWS</div><h1>Control Room<span className="iq-heading-dot">.</span></h1><p>See the evidence. Understand the decision. Trace every action.</p></div><Button appearance="primary" onClick={() => setEpoch(value => value + 1)} disabled={refreshing}>Refresh Runs</Button></div>
         <div className="iq-demo-note"><Badge appearance="tint" color="warning">Synthetic demo</Badge><span>Fictional business data · real audit trail. Authorization stays in Teams; this workspace only reads.</span></div>
         <div className="iq-boundaries" aria-label="Governance boundaries"><span><b>01</b> Agent proposes</span><span><b>02</b> Code validates</span><span><b>03</b> Human authorizes</span><span><b>04</b> Executor writes</span></div>
         {operationsApi && !linked && <CertificateCases api={operationsApi} accountName={accountName} refreshEpoch={epoch} />}
+        {coverageApi && !linked && <CoverageRenewals api={coverageApi} accountName={accountName} refreshEpoch={epoch} />}
         <div className="iq-room-layout">
           <section className="iq-run-browser" aria-labelledby="iq-runs-heading"><div className="iq-run-browser-heading"><h2 id="iq-runs-heading">Runs</h2><span className="iq-muted">{records.length} returned</span></div><div className="iq-filters"><label htmlFor={searchId}>Find a Run</label><Input id={searchId} placeholder="Contract, customer or Run ID" value={query} onChange={(_, data) => setQuery(data.value)} /><label htmlFor={filterId}>State</label><Select id={filterId} value={stateFilter} onChange={event => setStateFilter(event.target.value)}><option value="all">All states</option>{states.map(state => <option value={state} key={state}>{readable(state)}</option>)}</Select></div>
             {listError ? <div className="iq-list-message" role="alert"><h3>Runs could not be loaded</h3><p>No previous data is shown. Refresh to retry; if your session has expired, sign out and sign in again.</p></div> : refreshing ? <div className="iq-list-message" role="status"><Spinner size="small" label="Loading Runs" /></div> : visible.length === 0 ? <div className="iq-list-message"><h3>{records.length ? 'No matching Runs' : 'No Runs available'}</h3><p>{records.length ? 'Try another search or state filter.' : 'Runs visible to your signed-in account will appear here.'}</p></div> : <ul className="iq-run-list">{visible.map(record => <li key={record.run.run_id}><button type="button" className={`iq-run-option ${selectedId === record.run.run_id ? 'is-selected' : ''}`} aria-pressed={selectedId === record.run.run_id} onClick={() => { setSelectedId(record.run.run_id); setView('overview'); }}><span className="iq-run-option-title">{record.facts?.customer_name ?? record.run.contract_id}</span><span className="iq-run-contract">{record.run.contract_id}</span><Status state={record.run.state} /><span className="iq-run-option-footer"><span className="iq-mono" title={record.run.run_id}>{record.run.run_id.slice(0, 8)}</span><time dateTime={record.run.updated_at}>{timestamp(record.run.updated_at)}</time></span></button></li>)}</ul>}

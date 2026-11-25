@@ -27,7 +27,7 @@ locals {
     INNEXQ_FOUNDRY_AGENT_VERSION              = "2"
     AZURE_CLIENT_ID                           = azurerm_user_assigned_identity.api.client_id
     APPLICATIONINSIGHTS_AUTHENTICATION_STRING = "Authorization=AAD;ClientId=${azurerm_user_assigned_identity.api.client_id}"
-  }, local.certificate_api_env, local.evidence_api_env)
+  }, local.certificate_api_env, local.evidence_api_env, local.renewal_api_env)
 }
 
 resource "azurerm_container_app_environment" "main" {

@@ -9,6 +9,7 @@ import { createRunApi, type WebConfig } from "./api";
 import { createCustomerApi } from "./customer-api";
 import { createOperationsApi } from "./operations-api";
 import { createCaseReviewApi } from "./case-review-api";
+import { createCoverageApi } from "./coverage-api";
 import { isCustomerPortal, validateAppConfig } from "./app-mode";
 import { useLocationSearch } from './navigation';
 import "./control-room.css";
@@ -38,8 +39,8 @@ function App({ config, auth }: { config: WebConfig; auth: PublicClientApplicatio
         return result.accessToken;
       }
     };
-    return customer ? { customer: createCustomerApi(config, token), runs: null, operations: null, review: null } :
-      { customer: null, runs: createRunApi(config, token), operations: createOperationsApi(config, token), review: createCaseReviewApi(config, token, caseToken) };
+    return customer ? { customer: createCustomerApi(config, token), runs: null, operations: null, review: null, coverage: null } :
+      { customer: null, runs: createRunApi(config, token), operations: createOperationsApi(config, token), review: createCaseReviewApi(config, token, caseToken), coverage: createCoverageApi(config, token, caseToken) };
   }, [config, auth, account, customer]);
 
   async function signIn() {
@@ -59,7 +60,7 @@ function App({ config, auth }: { config: WebConfig; auth: PublicClientApplicatio
     });
   }
   return <FluentProvider theme={webLightTheme}>
-    {account ? customer && clients.customer ? <CustomerPortal key={account.homeAccountId} api={clients.customer} accountName={account.name || account.username} onSignOut={signOut} /> : operations && clients.operations && clients.review ? <OperationsInbox key={`${account.homeAccountId}:${search}`} api={clients.operations} reviewApi={clients.review} accountName={account.name || account.username} onSignOut={signOut} /> : clients.runs && clients.operations ? <ControlRoom key={`${account.homeAccountId}:${search}`} api={clients.runs} operationsApi={clients.operations} accountName={account.name || account.username} onSignOut={signOut} /> : null :
+    {account ? customer && clients.customer ? <CustomerPortal key={account.homeAccountId} api={clients.customer} accountName={account.name || account.username} onSignOut={signOut} /> : operations && clients.operations && clients.review ? <OperationsInbox key={`${account.homeAccountId}:${search}`} api={clients.operations} reviewApi={clients.review} accountName={account.name || account.username} onSignOut={signOut} /> : clients.runs && clients.operations ? <ControlRoom key={`${account.homeAccountId}:${search}`} api={clients.runs} operationsApi={clients.operations} coverageApi={clients.coverage ?? undefined} accountName={account.name || account.username} onSignOut={signOut} /> : null :
       <main className="sign-in"><p className="eyebrow">INNEXQ / {customer ? 'CUSTOMER PORTAL' : operations ? 'OPERATIONS' : 'CONTROL ROOM'}</p><h1>{customer ? <>Your equipment.<br />The documents you need.</> : <>Company knowledge.<br />Human authority.</>}</h1>
         <p>{customer ? 'Request an existing equipment certificate. Your account determines which equipment you can access.' : 'Inspect the evidence, decisions and outcomes behind every governed Run.'}</p>
         <p>{customer ? 'Certificate Fulfilment · Synthetic hackathon environment' : 'Contract Renewal · Synthetic hackathon environment · Read-only access'}</p>

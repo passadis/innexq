@@ -1,0 +1,626 @@
+{
+  "$defs": {
+    "CoverageExecutionAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "format": "uuid",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "action_type": {
+          "enum": [
+            "allocate_invoice_number",
+            "render_coverage_certificate",
+            "render_invoice",
+            "store_artifacts",
+            "archive_sharepoint_copy",
+            "publish_customer_download",
+            "send_notification"
+          ],
+          "title": "Action Type",
+          "type": "string"
+        },
+        "artifact_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Hash"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 16,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "action_id",
+        "action_type",
+        "parameters",
+        "idempotency_key"
+      ],
+      "title": "CoverageExecutionAction",
+      "type": "object"
+    },
+    "CoverageExecutionManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/CoverageExecutionAction"
+          },
+          "minItems": 1,
+          "title": "Actions",
+          "type": "array"
+        },
+        "manifest_id": {
+          "format": "uuid",
+          "title": "Manifest Id",
+          "type": "string"
+        },
+        "package_version": {
+          "minimum": 1,
+          "title": "Package Version",
+          "type": "integer"
+        },
+        "request_id": {
+          "format": "uuid",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "manifest_id",
+        "request_id",
+        "package_version",
+        "actions"
+      ],
+      "title": "CoverageExecutionManifest",
+      "type": "object"
+    },
+    "CoverageSourceFact": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "document_version": {
+          "minLength": 1,
+          "title": "Document Version",
+          "type": "string"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "document_version",
+        "sha256",
+        "label",
+        "value",
+        "page"
+      ],
+      "title": "CoverageSourceFact",
+      "type": "object"
+    },
+    "CoverageToolReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_id": {
+          "format": "uuid",
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "document_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Document Id"
+        },
+        "receipt_id": {
+          "format": "uuid",
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "source_version": {
+          "minLength": 1,
+          "title": "Source Version",
+          "type": "string"
+        },
+        "specialist": {
+          "enum": [
+            "renewal_coordinator",
+            "coverage_billing"
+          ],
+          "title": "Specialist",
+          "type": "string"
+        },
+        "tool_name": {
+          "enum": [
+            "get_equipment_record",
+            "list_service_coverage_documents",
+            "analyze_service_coverage_document",
+            "retrieve_renewal_policy",
+            "calculate_renewal_quote"
+          ],
+          "title": "Tool Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_id",
+        "receipt_id",
+        "specialist",
+        "tool_name",
+        "source_version",
+        "completed_at"
+      ],
+      "title": "CoverageToolReceipt",
+      "type": "object"
+    },
+    "EligibilityCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "enum": [
+            "ownership",
+            "document_type",
+            "document_identity",
+            "registry_integrity",
+            "renewal_window",
+            "equipment_eligibility",
+            "evidence_quality",
+            "policy_currency",
+            "billing_profile"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "passed",
+            "ownership_mismatch",
+            "non_renewable_document",
+            "document_identity_mismatch",
+            "registry_mismatch",
+            "outside_renewal_window",
+            "equipment_not_eligible",
+            "missing_evidence",
+            "stale_evidence",
+            "conflicting_evidence",
+            "inaccessible_evidence",
+            "policy_superseded",
+            "billing_profile_incomplete"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "verdict",
+        "reason"
+      ],
+      "title": "EligibilityCheck",
+      "type": "object"
+    },
+    "EligibilityDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/EligibilityCheck"
+          },
+          "maxItems": 9,
+          "minItems": 9,
+          "title": "Checks",
+          "type": "array"
+        },
+        "evaluated_at": {
+          "format": "date-time",
+          "title": "Evaluated At",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "eligible",
+            "renewal_hold"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "policy_id": {
+          "const": "COVERAGE-RENEWAL-001",
+          "default": "COVERAGE-RENEWAL-001",
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Policy Version",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evaluated_at",
+        "checks",
+        "outcome"
+      ],
+      "title": "EligibilityDecision",
+      "type": "object"
+    },
+    "InvoiceLineItem": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "line_amount": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Line Amount",
+          "type": "string"
+        },
+        "quantity": {
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "unit_amount": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Unit Amount",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "quantity",
+        "unit_amount",
+        "line_amount"
+      ],
+      "title": "InvoiceLineItem",
+      "type": "object"
+    },
+    "InvoicePreview": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "line_items": {
+          "items": {
+            "$ref": "#/$defs/InvoiceLineItem"
+          },
+          "minItems": 1,
+          "title": "Line Items",
+          "type": "array"
+        },
+        "notice": {
+          "const": "SYNTHETIC DEMO — NOT A FISCAL OR TAX DOCUMENT",
+          "default": "SYNTHETIC DEMO — NOT A FISCAL OR TAX DOCUMENT",
+          "title": "Notice",
+          "type": "string"
+        },
+        "subtotal": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Subtotal",
+          "type": "string"
+        },
+        "total_amount": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Total Amount",
+          "type": "string"
+        },
+        "vat_amount": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Vat Amount",
+          "type": "string"
+        },
+        "vat_rate_percent": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Vat Rate Percent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "currency",
+        "line_items",
+        "subtotal",
+        "vat_rate_percent",
+        "vat_amount",
+        "total_amount"
+      ],
+      "title": "InvoicePreview",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "PreviousDocumentRef": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "minLength": 1,
+          "title": "Document Id",
+          "type": "string"
+        },
+        "document_version": {
+          "minLength": 1,
+          "title": "Document Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id",
+        "document_version",
+        "sha256"
+      ],
+      "title": "PreviousDocumentRef",
+      "type": "object"
+    },
+    "RenewalQuote": {
+      "additionalProperties": false,
+      "properties": {
+        "base_amount": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Base Amount",
+          "type": "string"
+        },
+        "coverage_months": {
+          "maximum": 60,
+          "minimum": 1,
+          "title": "Coverage Months",
+          "type": "integer"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "policy_id": {
+          "const": "COVERAGE-RENEWAL-001",
+          "default": "COVERAGE-RENEWAL-001",
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "policy_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Policy Version",
+          "type": "integer"
+        },
+        "pricing_rule_id": {
+          "minLength": 1,
+          "title": "Pricing Rule Id",
+          "type": "string"
+        },
+        "pricing_rule_version": {
+          "minLength": 1,
+          "title": "Pricing Rule Version",
+          "type": "string"
+        },
+        "total_amount": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Total Amount",
+          "type": "string"
+        },
+        "vat_amount": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Vat Amount",
+          "type": "string"
+        },
+        "vat_rate_percent": {
+          "pattern": "^\\d+\\.\\d{2}$",
+          "title": "Vat Rate Percent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pricing_rule_id",
+        "pricing_rule_version",
+        "currency",
+        "coverage_months",
+        "base_amount",
+        "vat_rate_percent",
+        "vat_amount",
+        "total_amount"
+      ],
+      "title": "RenewalQuote",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.innexq.invalid/v1/renewal-package.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "certificate_preview_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Certificate Preview Sha256",
+      "type": "string"
+    },
+    "certificate_template_version": {
+      "minLength": 1,
+      "title": "Certificate Template Version",
+      "type": "string"
+    },
+    "coverage_months": {
+      "maximum": 60,
+      "minimum": 1,
+      "title": "Coverage Months",
+      "type": "integer"
+    },
+    "coverage_start_rule": {
+      "const": "manager_approval_date",
+      "default": "manager_approval_date",
+      "title": "Coverage Start Rule",
+      "type": "string"
+    },
+    "customer_id": {
+      "minLength": 1,
+      "title": "Customer Id",
+      "type": "string"
+    },
+    "eligibility": {
+      "$ref": "#/$defs/EligibilityDecision"
+    },
+    "equipment_id": {
+      "minLength": 1,
+      "title": "Equipment Id",
+      "type": "string"
+    },
+    "execution_manifest": {
+      "$ref": "#/$defs/CoverageExecutionManifest"
+    },
+    "invoice_preview": {
+      "$ref": "#/$defs/InvoicePreview"
+    },
+    "invoice_preview_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Invoice Preview Sha256",
+      "type": "string"
+    },
+    "invoice_template_version": {
+      "minLength": 1,
+      "title": "Invoice Template Version",
+      "type": "string"
+    },
+    "package_version": {
+      "minimum": 1,
+      "title": "Package Version",
+      "type": "integer"
+    },
+    "previous_document": {
+      "$ref": "#/$defs/PreviousDocumentRef"
+    },
+    "quote": {
+      "$ref": "#/$defs/RenewalQuote"
+    },
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "serial_number": {
+      "minLength": 1,
+      "title": "Serial Number",
+      "type": "string"
+    },
+    "source_facts": {
+      "items": {
+        "$ref": "#/$defs/CoverageSourceFact"
+      },
+      "minItems": 1,
+      "title": "Source Facts",
+      "type": "array"
+    },
+    "tool_receipts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CoverageToolReceipt"
+      },
+      "title": "Tool Receipts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "request_id",
+    "package_version",
+    "customer_id",
+    "equipment_id",
+    "serial_number",
+    "previous_document",
+    "source_facts",
+    "eligibility",
+    "coverage_months",
+    "quote",
+    "invoice_preview",
+    "certificate_preview_sha256",
+    "invoice_preview_sha256",
+    "certificate_template_version",
+    "invoice_template_version",
+    "execution_manifest"
+  ],
+  "title": "RenewalPackage",
+  "type": "object"
+}

@@ -21,6 +21,8 @@ from innexq_api.auth import EntraAuth
 from innexq_api.case_review import CaseReviewController
 from innexq_api.config import Settings
 from innexq_api.controller import CONTRACT_ID, Controller, Denied
+from innexq_api.coverage_controller import CoverageAuthorizationError
+from innexq_api.coverage_review import CoverageDecisionCommand, CoverageReviewService
 from innexq_api.customer_routes import CustomerRuntime, customer_app
 from innexq_api.store import Conflict
 from innexq_api.teams_http import TeamsResponseTelemetry
@@ -46,7 +48,9 @@ class EmployeeCors(CORSMiddleware):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope.get("path", "").startswith("/api/customer/"):
             await self.app(scope, receive, send)
-        elif scope.get("path", "").startswith("/api/operations/certificates/"):
+        elif scope.get("path", "").startswith(
+            ("/api/operations/certificates/", "/api/operations/coverage/")
+        ):
             # Case writes only, not a POST grant on legacy Runs or customer routes.
             await CORSMiddleware(
                 self.app,
@@ -72,6 +76,7 @@ def create_app(
         credential = None
         reader_credential = None
         notification_task = None
+        coverage_task = None
         evidence_stack = AsyncExitStack()
         try:
             if application.state.controller is None and config.cosmos_endpoint:
@@ -125,6 +130,50 @@ def create_app(
                         client_id=config.certificate_reader_client_id
                     )
                     certificate_store = CosmosCertificateStore(store.container)
+                    coverage_customer = None
+                    if config.renewal_enabled:
+                        from innexq_api.adapters import CoverageBlobStorage
+                        from innexq_api.coverage_controller import CoverageController
+                        from innexq_api.coverage_customer import CoverageCustomerRuntime
+                        from innexq_api.coverage_executor import CoverageExecutor
+                        from innexq_api.coverage_runner import CoverageExecutionRunner
+                        from innexq_api.coverage_sources import (
+                            FixtureCoverageInvestigator,
+                            FixtureCoverageSourceReader,
+                        )
+                        from innexq_api.coverage_store import CosmosCoverageStore
+
+                        coverage_container = store.client.get_database_client(
+                            config.cosmos_database
+                        ).get_container_client(config.renewal_coverage_container)
+                        coverage_store = CosmosCoverageStore(coverage_container)
+                        coverage_reader = FixtureCoverageSourceReader(
+                            config.renewal_scenarios_path, config.renewal_policy_path
+                        )
+                        coverage_controller = CoverageController(
+                            coverage_store,
+                            coverage_reader,
+                            operations_object_id=config.renewal_operations_object_id,
+                            manager_object_id=config.renewal_manager_object_id,
+                        )
+                        coverage_executor = CoverageExecutor(
+                            coverage_store,
+                            CoverageBlobStorage(config, credential),
+                            coverage_reader,
+                        )
+                        application.state.coverage_review = CoverageReviewService(
+                            coverage_controller
+                        )
+                        coverage_customer = CoverageCustomerRuntime(
+                            coverage_controller,
+                            FixtureCoverageInvestigator(coverage_reader),
+                            coverage_executor,
+                        )
+                        coverage_task = asyncio.create_task(
+                            CoverageExecutionRunner(
+                                coverage_store, coverage_controller, coverage_executor
+                            ).run()
+                        )
                     application.state.certificates = CertificateApplication(
                         config,
                         PrivateCertificateRepository(
@@ -137,6 +186,7 @@ def create_app(
                         ),
                         HostedCertificateTeam(config, credential),
                         certificate_store,
+                        coverage=coverage_customer,
                     )
                     application.state.certificate_store = certificate_store
                     if config.evidence_broker_enabled:
@@ -167,6 +217,10 @@ def create_app(
                     notification_task.cancel()
                     with suppress(asyncio.CancelledError):
                         await notification_task
+                if coverage_task is not None:
+                    coverage_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await coverage_task
             finally:
                 try:
                     await evidence_stack.aclose()
@@ -191,6 +245,7 @@ def create_app(
     application.state.auth = auth
     application.state.certificates = certificates
     application.state.certificate_store = None
+    application.state.coverage_review = None
     application.mount(
         "/api/customer", customer_app(config, auth, lambda: application.state.certificates)
     )
@@ -220,21 +275,36 @@ def create_app(
     def case_operator(request: Request) -> tuple[str, str]:
         return auth.case_operator(request)
 
+    def coverage_operator(request: Request) -> tuple[str, str]:
+        return auth.coverage_operator(request)
+
     def review_controller() -> CaseReviewController:
         store = application.state.certificate_store
         if store is None:
             raise HTTPException(503, "Certificate Fulfilment is not available")
         return CaseReviewController(store, UUID(config.tenant_id), UUID(config.approver_user_id))
 
+    def coverage_review() -> CoverageReviewService:
+        value: CoverageReviewService | None = application.state.coverage_review
+        if value is None:
+            raise HTTPException(503, "Service Coverage Renewal is not available")
+        return value
+
     application.state.user_dependency = user
     application.state.agent_dependency = agent
     User = Annotated[tuple[str, str], Depends(user)]
     CaseOperator = Annotated[tuple[str, str], Depends(case_operator)]
+    CoverageOperator = Annotated[tuple[str, str], Depends(coverage_operator)]
     Key = Annotated[str, Header(alias="Idempotency-Key", min_length=16, max_length=200)]
 
     @application.exception_handler(Denied)
     async def denied_handler(_request: Request, exc: Denied) -> JSONResponse:
         return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+    @application.exception_handler(CoverageAuthorizationError)
+    async def coverage_denied_handler(_request: Request, _exc: Exception) -> JSONResponse:
+        # Sanitized refusal; the audit record keeps the internal reason.
+        return JSONResponse(status_code=403, content={"detail": "Decision not authorized"})
 
     @application.exception_handler(Conflict)
     @application.exception_handler(InvalidTransition)
@@ -321,6 +391,26 @@ def create_app(
     )
     def case_action(request_id: UUID, body: CaseCommand, identity: CaseOperator) -> CaseReview:
         return review_controller().act(request_id, UUID(identity[0]), UUID(identity[1]), body)
+
+    @application.get("/api/operations/coverage")
+    def coverage_list(identity: User) -> list[dict[str, Any]]:
+        return coverage_review().list()
+
+    @application.get("/api/operations/coverage/{request_id}/review")
+    def coverage_read(request_id: UUID, identity: User) -> dict[str, Any]:
+        return coverage_review().read(request_id)
+
+    @application.post("/api/operations/coverage/{request_id}/operations-decision")
+    def coverage_operations_decision(
+        request_id: UUID, body: CoverageDecisionCommand, identity: CoverageOperator
+    ) -> dict[str, Any]:
+        return coverage_review().operations(request_id, identity[1], body).model_dump(mode="json")
+
+    @application.post("/api/operations/coverage/{request_id}/manager-decision")
+    def coverage_manager_decision(
+        request_id: UUID, body: CoverageDecisionCommand, identity: CoverageOperator
+    ) -> dict[str, Any]:
+        return coverage_review().manager(request_id, identity[1], body).model_dump(mode="json")
 
     @application.get("/api/runs/{run_id}", response_model=RunRecord)
     def get_run(run_id: UUID, identity: User) -> RunRecord:

@@ -69,6 +69,22 @@ class EntraAuth:
             raise HTTPException(403, "assigned Operations with Cases.Manage required")
         return claims["tid"], claims["oid"]
 
+    def coverage_operator(self, request: Request) -> tuple[str, str]:
+        """Operations or Manager; the coverage controller binds each stage to one identity."""
+        claims = self.claims(request)
+        scopes = claims.get("scp", "")
+        allowed = {self.settings.approver_user_id}
+        if self.settings.manager_user_id:
+            allowed.add(self.settings.manager_user_id)
+        if (
+            claims.get("idtyp") == "app"
+            or not isinstance(scopes, str)
+            or "Cases.Manage" not in scopes.split()
+            or claims["oid"] not in allowed
+        ):
+            raise HTTPException(403, "assigned Operations or Manager with Cases.Manage required")
+        return claims["tid"], claims["oid"]
+
     def agent(self, request: Request) -> None:
         claims = self.claims(request)
         if (
