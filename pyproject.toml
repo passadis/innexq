@@ -28,15 +28,9 @@ dependencies = [
 dev = [
   "detect-secrets>=1.5,<2",
   "httpx>=0.28,<1",
-<<<<<<< HEAD
-  "mypy>=1.17,<2",
-  "pytest>=8.4,<10",
-  "pytest-cov>=6.2,<7",
-=======
   "mypy>=1.17,<3",
-  "pytest>=8.4,<9",
+  "pytest>=8.4,<10",
   "pytest-cov>=6.2,<8",
->>>>>>> origin/main
   "pyyaml>=6,<7",
   "ruff>=0.12,<1",
 ]

@@ -820,15 +820,9 @@ requires-dist = [
 dev = [
     { name = "detect-secrets", specifier = ">=1.5,<2" },
     { name = "httpx", specifier = ">=0.28,<1" },
-<<<<<<< HEAD
-    { name = "mypy", specifier = ">=1.17,<2" },
-    { name = "pytest", specifier = ">=8.4,<10" },
-    { name = "pytest-cov", specifier = ">=6.2,<7" },
-=======
     { name = "mypy", specifier = ">=1.17,<3" },
-    { name = "pytest", specifier = ">=8.4,<9" },
+    { name = "pytest", specifier = ">=8.4,<10" },
     { name = "pytest-cov", specifier = ">=6.2,<8" },
->>>>>>> origin/main
     { name = "pyyaml", specifier = ">=6,<7" },
     { name = "ruff", specifier = ">=0.12,<1" },
 ]
